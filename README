@@ -1,0 +1,7 @@
+jpackage `
+  --type app-image `
+  --name ChecklistTarefas `
+  --input target `
+  --main-jar checklist-tarefas.jar `
+  --main-class br.com.checklist.Main `
+  --dest instalador
