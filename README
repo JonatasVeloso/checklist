@@ -1,3 +1,5 @@
+Gerar .exe
+
 jpackage `
   --type app-image `
   --name ChecklistTarefas `
