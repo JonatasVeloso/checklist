@@ -30,8 +30,8 @@ public class ChecklistFrame extends JFrame {
 
     private void configurarJanela() {
         setTitle("Checklist de Tarefas");
-        setSize(700, 520);
-        setMinimumSize(new Dimension(550, 420));
+        setSize(760, 580);
+        setMinimumSize(new Dimension(600, 460));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
     }
@@ -60,22 +60,37 @@ public class ChecklistFrame extends JFrame {
     }
 
     private JPanel criarPainelAcoes() {
-        JPanel painel = new JPanel();
-        painel.setBorder(BorderFactory.createEmptyBorder(5, 15, 15, 15));
+        JPanel painelPrincipal = new JPanel(new BorderLayout(10, 10));
+        painelPrincipal.setBorder(BorderFactory.createEmptyBorder(5, 15, 15, 15));
+
+        JPanel painelAbas = new JPanel();
+        JPanel painelOrdemAbas = new JPanel();
 
         JButton botaoNovaAba = new JButton("Nova aba");
         JButton botaoRenomearAba = new JButton("Renomear aba");
         JButton botaoExcluirAba = new JButton("Excluir aba atual");
 
+        JButton botaoAbaEsquerda = new JButton("Aba para esquerda");
+        JButton botaoAbaDireita = new JButton("Aba para direita");
+
         botaoNovaAba.addActionListener(e -> criarNovaAba());
         botaoRenomearAba.addActionListener(e -> renomearAbaAtual());
         botaoExcluirAba.addActionListener(e -> excluirAbaAtual());
 
-        painel.add(botaoNovaAba);
-        painel.add(botaoRenomearAba);
-        painel.add(botaoExcluirAba);
+        botaoAbaEsquerda.addActionListener(e -> moverAbaParaEsquerda());
+        botaoAbaDireita.addActionListener(e -> moverAbaParaDireita());
 
-        return painel;
+        painelAbas.add(botaoNovaAba);
+        painelAbas.add(botaoRenomearAba);
+        painelAbas.add(botaoExcluirAba);
+
+        painelOrdemAbas.add(botaoAbaEsquerda);
+        painelOrdemAbas.add(botaoAbaDireita);
+
+        painelPrincipal.add(painelAbas, BorderLayout.NORTH);
+        painelPrincipal.add(painelOrdemAbas, BorderLayout.SOUTH);
+
+        return painelPrincipal;
     }
 
     private void carregarCategorias() {
@@ -211,6 +226,40 @@ public class ChecklistFrame extends JFrame {
         }
 
         abas.removeTabAt(index);
+        salvarCategorias();
+    }
+
+    private void moverAbaParaEsquerda() {
+        int index = abas.getSelectedIndex();
+
+        if (index <= 0) {
+            return;
+        }
+
+        moverAba(index, index - 1);
+    }
+
+    private void moverAbaParaDireita() {
+        int index = abas.getSelectedIndex();
+
+        if (index < 0 || index >= abas.getTabCount() - 1) {
+            return;
+        }
+
+        moverAba(index, index + 1);
+    }
+
+    private void moverAba(int origem, int destino) {
+        String titulo = abas.getTitleAt(origem);
+        java.awt.Component componente = abas.getComponentAt(origem);
+
+        String tooltip = abas.getToolTipTextAt(origem);
+        javax.swing.Icon icone = abas.getIconAt(origem);
+
+        abas.removeTabAt(origem);
+        abas.insertTab(titulo, icone, componente, tooltip, destino);
+        abas.setSelectedIndex(destino);
+
         salvarCategorias();
     }
 

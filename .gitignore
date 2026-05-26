@@ -1,0 +1,6 @@
+# Maven / build
+target/
+
+# Saída do jpackage / instalador
+instalador/
+dist/

@@ -88,22 +88,37 @@ public class CategoriaChecklistPanel extends JPanel {
     }
 
     private JPanel criarPainelBotoes() {
-        JPanel painel = new JPanel(new GridLayout(1, 3, 10, 10));
-        painel.setBorder(BorderFactory.createEmptyBorder(5, 15, 15, 15));
+        JPanel painelPrincipal = new JPanel(new GridLayout(2, 1, 10, 10));
+        painelPrincipal.setBorder(BorderFactory.createEmptyBorder(5, 15, 15, 15));
+
+        JPanel painelOrganizacao = new JPanel(new GridLayout(1, 2, 10, 10));
+        JPanel painelAcoes = new JPanel(new GridLayout(1, 3, 10, 10));
+
+        JButton botaoSubir = new JButton("Subir tarefa");
+        JButton botaoDescer = new JButton("Descer tarefa");
 
         JButton botaoConcluirTodas = new JButton("Concluir todas");
         JButton botaoLimparConcluidas = new JButton("Limpar concluídas");
         JButton botaoExcluirSelecionada = new JButton("Excluir selecionada");
 
+        botaoSubir.addActionListener(e -> subirTarefaSelecionada());
+        botaoDescer.addActionListener(e -> descerTarefaSelecionada());
+
         botaoConcluirTodas.addActionListener(e -> concluirTodas());
         botaoLimparConcluidas.addActionListener(e -> limparConcluidas());
         botaoExcluirSelecionada.addActionListener(e -> excluirSelecionada());
 
-        painel.add(botaoConcluirTodas);
-        painel.add(botaoLimparConcluidas);
-        painel.add(botaoExcluirSelecionada);
+        painelOrganizacao.add(botaoSubir);
+        painelOrganizacao.add(botaoDescer);
 
-        return painel;
+        painelAcoes.add(botaoConcluirTodas);
+        painelAcoes.add(botaoLimparConcluidas);
+        painelAcoes.add(botaoExcluirSelecionada);
+
+        painelPrincipal.add(painelOrganizacao);
+        painelPrincipal.add(painelAcoes);
+
+        return painelPrincipal;
     }
 
     private void adicionarTarefa() {
@@ -124,6 +139,44 @@ public class CategoriaChecklistPanel extends JPanel {
 
         campoTarefa.setText("");
         campoTarefa.requestFocus();
+
+        notificarAlteracao();
+    }
+
+    private void subirTarefaSelecionada() {
+        int index = listaTarefas.getSelectedIndex();
+
+        if (index <= 0) {
+            return;
+        }
+
+        Tarefa tarefaAtual = listModel.getElementAt(index);
+        Tarefa tarefaAnterior = listModel.getElementAt(index - 1);
+
+        listModel.set(index - 1, tarefaAtual);
+        listModel.set(index, tarefaAnterior);
+
+        listaTarefas.setSelectedIndex(index - 1);
+        listaTarefas.ensureIndexIsVisible(index - 1);
+
+        notificarAlteracao();
+    }
+
+    private void descerTarefaSelecionada() {
+        int index = listaTarefas.getSelectedIndex();
+
+        if (index < 0 || index >= listModel.size() - 1) {
+            return;
+        }
+
+        Tarefa tarefaAtual = listModel.getElementAt(index);
+        Tarefa tarefaProxima = listModel.getElementAt(index + 1);
+
+        listModel.set(index + 1, tarefaAtual);
+        listModel.set(index, tarefaProxima);
+
+        listaTarefas.setSelectedIndex(index + 1);
+        listaTarefas.ensureIndexIsVisible(index + 1);
 
         notificarAlteracao();
     }
