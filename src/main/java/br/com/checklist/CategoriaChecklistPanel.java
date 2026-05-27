@@ -1,19 +1,27 @@
 package br.com.checklist;
 
 import javax.swing.BorderFactory;
-import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JList;
+import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.ListCellRenderer;
+import javax.swing.ListSelectionModel;
+import javax.swing.DropMode;
+import javax.swing.RowFilter;
+import javax.swing.TransferHandler;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableRowSorter;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,10 +29,12 @@ public class CategoriaChecklistPanel extends JPanel {
 
     private final Runnable onAlteracao;
 
-    private final DefaultListModel<Tarefa> listModel = new DefaultListModel<>();
-    private final JList<Tarefa> listaTarefas = new JList<>(listModel);
+    private final TarefasTableModel tableModel = new TarefasTableModel();
+    private final JTable tabelaTarefas = new JTable(tableModel);
+    private final TableRowSorter<TarefasTableModel> sorter = new TableRowSorter<>(tableModel);
 
     private final JTextField campoTarefa = new JTextField();
+    private final JCheckBox filtroNaoConcluidas = new JCheckBox("Mostrar apenas não concluídas");
 
     public CategoriaChecklistPanel(List<Tarefa> tarefas, Runnable onAlteracao) {
         this.onAlteracao = onAlteracao;
@@ -34,7 +44,7 @@ public class CategoriaChecklistPanel extends JPanel {
         configurarComponentes();
 
         for (Tarefa tarefa : tarefas) {
-            listModel.addElement(tarefa);
+            tableModel.adicionar(tarefa);
         }
     }
 
@@ -57,68 +67,77 @@ public class CategoriaChecklistPanel extends JPanel {
 
         campoTarefa.addActionListener(e -> adicionarTarefa());
 
-        painel.add(campoTarefa, BorderLayout.CENTER);
-        painel.add(botaoAdicionar, BorderLayout.EAST);
+        filtroNaoConcluidas.addActionListener(e -> aplicarFiltro());
+
+        JPanel painelInput = new JPanel(new BorderLayout(10, 10));
+        painelInput.add(campoTarefa, BorderLayout.CENTER);
+        painelInput.add(botaoAdicionar, BorderLayout.EAST);
+
+        painel.add(painelInput, BorderLayout.CENTER);
+        painel.add(filtroNaoConcluidas, BorderLayout.SOUTH);
 
         return painel;
     }
 
     private JScrollPane criarPainelLista() {
-        listaTarefas.setCellRenderer(new TarefaCellRenderer());
+        tabelaTarefas.setModel(tableModel);
+        tabelaTarefas.setRowSorter(sorter);
 
-        listaTarefas.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
-                int index = listaTarefas.locationToIndex(e.getPoint());
+        tabelaTarefas.setFont(new Font("Arial", Font.PLAIN, 16));
+        tabelaTarefas.setRowHeight(32);
+        tabelaTarefas.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-                if (index >= 0) {
-                    Tarefa tarefa = listModel.getElementAt(index);
-                    tarefa.setConcluida(!tarefa.isConcluida());
+        tabelaTarefas.getTableHeader().setReorderingAllowed(false);
 
-                    listaTarefas.repaint();
-                    notificarAlteracao();
-                }
-            }
-        });
+        tabelaTarefas.getColumnModel().getColumn(0).setMinWidth(90);
+        tabelaTarefas.getColumnModel().getColumn(0).setMaxWidth(110);
+        tabelaTarefas.getColumnModel().getColumn(0).setPreferredWidth(100);
 
-        JScrollPane scrollPane = new JScrollPane(listaTarefas);
+        tabelaTarefas.getColumnModel().getColumn(1).setPreferredWidth(500);
+
+        tabelaTarefas.setDefaultRenderer(Boolean.class, new CheckBoxCentralizadoRenderer());
+
+        tabelaTarefas.setDragEnabled(true);
+        tabelaTarefas.setDropMode(DropMode.INSERT_ROWS);
+        tabelaTarefas.setTransferHandler(new TarefaTableTransferHandler());
+
+        JScrollPane scrollPane = new JScrollPane(tabelaTarefas);
         scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
 
         return scrollPane;
     }
 
     private JPanel criarPainelBotoes() {
-        JPanel painelPrincipal = new JPanel(new GridLayout(2, 1, 10, 10));
-        painelPrincipal.setBorder(BorderFactory.createEmptyBorder(5, 15, 15, 15));
-
-        JPanel painelOrganizacao = new JPanel(new GridLayout(1, 2, 10, 10));
-        JPanel painelAcoes = new JPanel(new GridLayout(1, 3, 10, 10));
-
-        JButton botaoSubir = new JButton("Subir tarefa");
-        JButton botaoDescer = new JButton("Descer tarefa");
+        JPanel painel = new JPanel(new GridLayout(1, 3, 10, 10));
+        painel.setBorder(BorderFactory.createEmptyBorder(5, 15, 15, 15));
 
         JButton botaoConcluirTodas = new JButton("Concluir todas");
         JButton botaoLimparConcluidas = new JButton("Limpar concluídas");
         JButton botaoExcluirSelecionada = new JButton("Excluir selecionada");
 
-        botaoSubir.addActionListener(e -> subirTarefaSelecionada());
-        botaoDescer.addActionListener(e -> descerTarefaSelecionada());
-
         botaoConcluirTodas.addActionListener(e -> concluirTodas());
         botaoLimparConcluidas.addActionListener(e -> limparConcluidas());
         botaoExcluirSelecionada.addActionListener(e -> excluirSelecionada());
 
-        painelOrganizacao.add(botaoSubir);
-        painelOrganizacao.add(botaoDescer);
+        painel.add(botaoConcluirTodas);
+        painel.add(botaoLimparConcluidas);
+        painel.add(botaoExcluirSelecionada);
 
-        painelAcoes.add(botaoConcluirTodas);
-        painelAcoes.add(botaoLimparConcluidas);
-        painelAcoes.add(botaoExcluirSelecionada);
+        return painel;
+    }
 
-        painelPrincipal.add(painelOrganizacao);
-        painelPrincipal.add(painelAcoes);
-
-        return painelPrincipal;
+    private void aplicarFiltro() {
+        if (filtroNaoConcluidas.isSelected()) {
+            sorter.setRowFilter(new RowFilter<>() {
+                @Override
+                public boolean include(Entry<? extends TarefasTableModel, ? extends Integer> entry) {
+                    Boolean concluida = (Boolean) entry.getValue(0);
+                    return !Boolean.TRUE.equals(concluida);
+                }
+            });
+        } else {
+            sorter.setRowFilter(null);
+        }
     }
 
     private void adicionarTarefa() {
@@ -134,8 +153,7 @@ public class CategoriaChecklistPanel extends JPanel {
             return;
         }
 
-        Tarefa tarefa = new Tarefa(descricao, false);
-        listModel.addElement(tarefa);
+        tableModel.adicionar(new Tarefa(descricao, false));
 
         campoTarefa.setText("");
         campoTarefa.requestFocus();
@@ -143,67 +161,31 @@ public class CategoriaChecklistPanel extends JPanel {
         notificarAlteracao();
     }
 
-    private void subirTarefaSelecionada() {
-        int index = listaTarefas.getSelectedIndex();
-
-        if (index <= 0) {
-            return;
-        }
-
-        Tarefa tarefaAtual = listModel.getElementAt(index);
-        Tarefa tarefaAnterior = listModel.getElementAt(index - 1);
-
-        listModel.set(index - 1, tarefaAtual);
-        listModel.set(index, tarefaAnterior);
-
-        listaTarefas.setSelectedIndex(index - 1);
-        listaTarefas.ensureIndexIsVisible(index - 1);
-
-        notificarAlteracao();
-    }
-
-    private void descerTarefaSelecionada() {
-        int index = listaTarefas.getSelectedIndex();
-
-        if (index < 0 || index >= listModel.size() - 1) {
-            return;
-        }
-
-        Tarefa tarefaAtual = listModel.getElementAt(index);
-        Tarefa tarefaProxima = listModel.getElementAt(index + 1);
-
-        listModel.set(index + 1, tarefaAtual);
-        listModel.set(index, tarefaProxima);
-
-        listaTarefas.setSelectedIndex(index + 1);
-        listaTarefas.ensureIndexIsVisible(index + 1);
-
-        notificarAlteracao();
-    }
-
     private void concluirTodas() {
-        for (int i = 0; i < listModel.size(); i++) {
-            listModel.getElementAt(i).setConcluida(true);
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            tableModel.getTarefa(i).setConcluida(true);
         }
 
-        listaTarefas.repaint();
+        tableModel.fireTableDataChanged();
+        aplicarFiltro();
         notificarAlteracao();
     }
 
     private void limparConcluidas() {
-        for (int i = listModel.size() - 1; i >= 0; i--) {
-            if (listModel.getElementAt(i).isConcluida()) {
-                listModel.remove(i);
+        for (int i = tableModel.getRowCount() - 1; i >= 0; i--) {
+            if (tableModel.getTarefa(i).isConcluida()) {
+                tableModel.remover(i);
             }
         }
 
+        aplicarFiltro();
         notificarAlteracao();
     }
 
     private void excluirSelecionada() {
-        int index = listaTarefas.getSelectedIndex();
+        int viewIndex = tabelaTarefas.getSelectedRow();
 
-        if (index < 0) {
+        if (viewIndex < 0) {
             JOptionPane.showMessageDialog(
                     this,
                     "Selecione uma tarefa para excluir.",
@@ -213,18 +195,44 @@ public class CategoriaChecklistPanel extends JPanel {
             return;
         }
 
-        listModel.remove(index);
+        int modelIndex = tabelaTarefas.convertRowIndexToModel(viewIndex);
+
+        tableModel.remover(modelIndex);
+        notificarAlteracao();
+    }
+
+    private void moverTarefa(int origemView, int destinoView) {
+        if (origemView < 0 || origemView >= tabelaTarefas.getRowCount()) {
+            return;
+        }
+
+        if (destinoView < 0 || destinoView > tabelaTarefas.getRowCount()) {
+            return;
+        }
+
+        int origemModel = tabelaTarefas.convertRowIndexToModel(origemView);
+
+        int destinoModel;
+
+        if (destinoView >= tabelaTarefas.getRowCount()) {
+            destinoModel = tableModel.getRowCount();
+        } else {
+            destinoModel = tabelaTarefas.convertRowIndexToModel(destinoView);
+        }
+
+        if (origemModel == destinoModel || origemModel + 1 == destinoModel) {
+            return;
+        }
+
+        tableModel.mover(origemModel, destinoModel);
+
+        tableModel.fireTableDataChanged();
+        aplicarFiltro();
         notificarAlteracao();
     }
 
     public List<Tarefa> getTarefas() {
-        List<Tarefa> tarefas = new ArrayList<>();
-
-        for (int i = 0; i < listModel.size(); i++) {
-            tarefas.add(listModel.getElementAt(i));
-        }
-
-        return tarefas;
+        return tableModel.getTarefas();
     }
 
     private void notificarAlteracao() {
@@ -233,31 +241,185 @@ public class CategoriaChecklistPanel extends JPanel {
         }
     }
 
-    private static class TarefaCellRenderer extends JCheckBox implements ListCellRenderer<Tarefa> {
+    private class TarefasTableModel extends AbstractTableModel {
 
-        public TarefaCellRenderer() {
-            setOpaque(true);
-            setFont(new Font("Arial", Font.PLAIN, 16));
-            setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        private final String[] colunas = {"Concluída", "Tarefa"};
+        private final List<Tarefa> tarefas = new ArrayList<>();
+
+        @Override
+        public int getRowCount() {
+            return tarefas.size();
         }
 
         @Override
-        public Component getListCellRendererComponent(
-                JList<? extends Tarefa> list,
-                Tarefa tarefa,
-                int index,
+        public int getColumnCount() {
+            return colunas.length;
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            return colunas[column];
+        }
+
+        @Override
+        public Class<?> getColumnClass(int columnIndex) {
+            if (columnIndex == 0) {
+                return Boolean.class;
+            }
+
+            return String.class;
+        }
+
+        @Override
+        public boolean isCellEditable(int rowIndex, int columnIndex) {
+            return true;
+        }
+
+        @Override
+        public Object getValueAt(int rowIndex, int columnIndex) {
+            Tarefa tarefa = tarefas.get(rowIndex);
+
+            if (columnIndex == 0) {
+                return tarefa.isConcluida();
+            }
+
+            return tarefa.getDescricao();
+        }
+
+        @Override
+        public void setValueAt(Object valor, int rowIndex, int columnIndex) {
+            Tarefa tarefa = tarefas.get(rowIndex);
+
+            if (columnIndex == 0) {
+                tarefa.setConcluida(Boolean.TRUE.equals(valor));
+            } else if (columnIndex == 1) {
+                String novaDescricao = String.valueOf(valor).trim();
+
+                if (!novaDescricao.isEmpty()) {
+                    tarefa.setDescricao(novaDescricao);
+                }
+            }
+
+            fireTableRowsUpdated(rowIndex, rowIndex);
+            aplicarFiltro();
+            notificarAlteracao();
+        }
+
+        public void adicionar(Tarefa tarefa) {
+            tarefas.add(tarefa);
+
+            int index = tarefas.size() - 1;
+            fireTableRowsInserted(index, index);
+        }
+
+        public void remover(int index) {
+            tarefas.remove(index);
+            fireTableRowsDeleted(index, index);
+        }
+
+        public void mover(int origem, int destino) {
+            Tarefa tarefa = tarefas.remove(origem);
+
+            if (destino > origem) {
+                destino--;
+            }
+
+            tarefas.add(destino, tarefa);
+            fireTableDataChanged();
+        }
+
+        public Tarefa getTarefa(int index) {
+            return tarefas.get(index);
+        }
+
+        public List<Tarefa> getTarefas() {
+            return new ArrayList<>(tarefas);
+        }
+    }
+
+    private class TarefaTableTransferHandler extends TransferHandler {
+
+        private final DataFlavor rowFlavor = new DataFlavor(Integer.class, "Integer Row Index");
+
+        private int origemView = -1;
+
+        @Override
+        protected Transferable createTransferable(JComponent c) {
+            origemView = tabelaTarefas.getSelectedRow();
+
+            if (origemView < 0) {
+                return null;
+            }
+
+            return new Transferable() {
+                @Override
+                public DataFlavor[] getTransferDataFlavors() {
+                    return new DataFlavor[]{rowFlavor};
+                }
+
+                @Override
+                public boolean isDataFlavorSupported(DataFlavor flavor) {
+                    return rowFlavor.equals(flavor);
+                }
+
+                @Override
+                public Object getTransferData(DataFlavor flavor) {
+                    return origemView;
+                }
+            };
+        }
+
+        @Override
+        public boolean canImport(TransferSupport support) {
+            return support.isDrop() && support.isDataFlavorSupported(rowFlavor);
+        }
+
+        @Override
+        public boolean importData(TransferSupport support) {
+            if (!canImport(support)) {
+                return false;
+            }
+
+            JTable.DropLocation dropLocation = (JTable.DropLocation) support.getDropLocation();
+            int destinoView = dropLocation.getRow();
+
+            moverTarefa(origemView, destinoView);
+
+            origemView = -1;
+
+            return true;
+        }
+
+        @Override
+        public int getSourceActions(JComponent c) {
+            return MOVE;
+        }
+    }
+
+    private static class CheckBoxCentralizadoRenderer extends JCheckBox implements TableCellRenderer {
+
+        public CheckBoxCentralizadoRenderer() {
+            setHorizontalAlignment(CENTER);
+            setOpaque(true);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table,
+                Object value,
                 boolean isSelected,
-                boolean cellHasFocus
+                boolean hasFocus,
+                int row,
+                int column
         ) {
-            setText(tarefa.getDescricao());
-            setSelected(tarefa.isConcluida());
+            setSelected(Boolean.TRUE.equals(value));
 
             if (isSelected) {
-                setBackground(list.getSelectionBackground());
-                setForeground(list.getSelectionForeground());
+                setBackground(table.getSelectionBackground());
+                setForeground(table.getSelectionForeground());
             } else {
-                setBackground(list.getBackground());
-                setForeground(list.getForeground());
+                setBackground(table.getBackground());
+                setForeground(table.getForeground());
             }
 
             return this;
