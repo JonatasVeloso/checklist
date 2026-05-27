@@ -3,11 +3,11 @@ package br.com.checklist;
 public class Tarefa {
 
     private String descricao;
-    private boolean concluida;
+    private StatusTarefa status;
 
-    public Tarefa(String descricao, boolean concluida) {
+    public Tarefa(String descricao, StatusTarefa status) {
         this.descricao = descricao;
-        this.concluida = concluida;
+        this.status = status == null ? StatusTarefa.PENDING : status;
     }
 
     public String getDescricao() {
@@ -18,12 +18,16 @@ public class Tarefa {
         this.descricao = descricao;
     }
 
-    public boolean isConcluida() {
-        return concluida;
+    public StatusTarefa getStatus() {
+        return status;
     }
 
-    public void setConcluida(boolean concluida) {
-        this.concluida = concluida;
+    public void setStatus(StatusTarefa status) {
+        this.status = status == null ? StatusTarefa.PENDING : status;
+    }
+
+    public boolean isConcluida() {
+        return StatusTarefa.DONE.equals(status);
     }
 
     @Override

@@ -48,10 +48,10 @@ public class TarefaRepository {
                 String[] partes = linha.split(";", 2);
 
                 if (partes.length == 2) {
-                    boolean concluida = Boolean.parseBoolean(partes[0]);
+                    StatusTarefa status = StatusTarefa.fromTexto(partes[0]);
                     String descricao = partes[1];
 
-                    categorias.get(categoriaAtual).add(new Tarefa(descricao, concluida));
+                    categorias.get(categoriaAtual).add(new Tarefa(descricao, status));
                 }
             }
 
@@ -73,7 +73,7 @@ public class TarefaRepository {
                 writer.newLine();
 
                 for (Tarefa tarefa : categoria.getValue()) {
-                    writer.write(tarefa.isConcluida() + ";" + tarefa.getDescricao());
+                    writer.write(tarefa.getStatus().name() + ";" + tarefa.getDescricao());
                     writer.newLine();
                 }
 
