@@ -45,13 +45,14 @@ public class TarefaRepository {
                     continue;
                 }
 
-                String[] partes = linha.split(";", 2);
+                String[] partes = linha.split(";", 3);
 
-                if (partes.length == 2) {
+                if (partes.length >= 2) {
                     StatusTarefa status = StatusTarefa.fromTexto(partes[0]);
                     String descricao = partes[1];
+                    String observacao = partes.length == 3 ? partes[2] : "";
 
-                    categorias.get(categoriaAtual).add(new Tarefa(descricao, status));
+                    categorias.get(categoriaAtual).add(new Tarefa(descricao, observacao, status));
                 }
             }
 
@@ -73,7 +74,13 @@ public class TarefaRepository {
                 writer.newLine();
 
                 for (Tarefa tarefa : categoria.getValue()) {
-                    writer.write(tarefa.getStatus().name() + ";" + tarefa.getDescricao());
+                    writer.write(
+                            tarefa.getStatus().name()
+                                    + ";"
+                                    + limparQuebraLinha(tarefa.getDescricao())
+                                    + ";"
+                                    + limparQuebraLinha(tarefa.getObservacao())
+                    );
                     writer.newLine();
                 }
 
@@ -82,6 +89,16 @@ public class TarefaRepository {
         } catch (IOException e) {
             throw new RuntimeException("Erro ao salvar tarefas", e);
         }
+    }
+
+    private String limparQuebraLinha(String texto) {
+        if (texto == null) {
+            return "";
+        }
+
+        return texto
+                .replace("\r", " ")
+                .replace("\n", " ");
     }
 
     private void criarCategoriasPadrao(Map<String, List<Tarefa>> categorias) {

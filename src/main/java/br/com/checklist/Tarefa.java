@@ -3,10 +3,16 @@ package br.com.checklist;
 public class Tarefa {
 
     private String descricao;
+    private String observacao;
     private StatusTarefa status;
 
     public Tarefa(String descricao, StatusTarefa status) {
+        this(descricao, "", status);
+    }
+
+    public Tarefa(String descricao, String observacao, StatusTarefa status) {
         this.descricao = descricao;
+        this.observacao = observacao == null ? "" : observacao;
         this.status = status == null ? StatusTarefa.PENDING : status;
     }
 
@@ -16,6 +22,14 @@ public class Tarefa {
 
     public void setDescricao(String descricao) {
         this.descricao = descricao;
+    }
+
+    public String getObservacao() {
+        return observacao;
+    }
+
+    public void setObservacao(String observacao) {
+        this.observacao = observacao == null ? "" : observacao;
     }
 
     public StatusTarefa getStatus() {

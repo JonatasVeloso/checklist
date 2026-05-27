@@ -107,7 +107,8 @@ public class CategoriaChecklistPanel extends JPanel {
         tabelaTarefas.setDefaultRenderer(StatusTarefa.class, new StatusTableCellRenderer());
         tabelaTarefas.setDefaultRenderer(String.class, new TarefaTableCellRenderer());
 
-        tabelaTarefas.getColumnModel().getColumn(1).setPreferredWidth(500);
+        tabelaTarefas.getColumnModel().getColumn(1).setPreferredWidth(350);
+        tabelaTarefas.getColumnModel().getColumn(2).setPreferredWidth(350);
 
         tabelaTarefas.setDragEnabled(true);
         tabelaTarefas.setDropMode(DropMode.INSERT_ROWS);
@@ -257,7 +258,7 @@ public class CategoriaChecklistPanel extends JPanel {
 
     private class TarefasTableModel extends AbstractTableModel {
 
-        private final String[] colunas = {"Status", "Tarefa"};
+        private final String[] colunas = {"Status", "Tarefa", "Observação"};
         private final List<Tarefa> tarefas = new ArrayList<>();
 
         @Override
@@ -297,7 +298,11 @@ public class CategoriaChecklistPanel extends JPanel {
                 return tarefa.getStatus();
             }
 
-            return tarefa.getDescricao();
+            if (columnIndex == 1) {
+                return tarefa.getDescricao();
+            }
+
+            return tarefa.getObservacao();
         }
 
         @Override
@@ -316,6 +321,9 @@ public class CategoriaChecklistPanel extends JPanel {
                 if (!novaDescricao.isEmpty()) {
                     tarefa.setDescricao(novaDescricao);
                 }
+            } else if (columnIndex == 2) {
+                String novaObservacao = String.valueOf(valor).trim();
+                tarefa.setObservacao(novaObservacao);
             }
 
             fireTableRowsUpdated(rowIndex, rowIndex);
