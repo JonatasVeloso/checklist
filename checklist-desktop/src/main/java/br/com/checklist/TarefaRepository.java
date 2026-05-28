@@ -45,14 +45,10 @@ public class TarefaRepository {
                     continue;
                 }
 
-                String[] partes = linha.split(";", 3);
+                Tarefa tarefa = converterLinhaParaTarefa(linha);
 
-                if (partes.length >= 2) {
-                    StatusTarefa status = StatusTarefa.fromTexto(partes[0]);
-                    String descricao = partes[1];
-                    String observacao = partes.length == 3 ? partes[2] : "";
-
-                    categorias.get(categoriaAtual).add(new Tarefa(descricao, observacao, status));
+                if (tarefa != null) {
+                    categorias.get(categoriaAtual).add(tarefa);
                 }
             }
 
@@ -67,6 +63,55 @@ public class TarefaRepository {
         return categorias;
     }
 
+    private Tarefa converterLinhaParaTarefa(String linha) {
+        String[] partes = linha.split(";", 5);
+
+        if (partes.length == 2) {
+            StatusTarefa status = StatusTarefa.fromTexto(partes[0]);
+            String descricao = partes[1];
+
+            return new Tarefa(
+                    descricao,
+                    "",
+                    "",
+                    status,
+                    TipoTarefa.DIARIA
+            );
+        }
+
+        if (partes.length == 3) {
+            StatusTarefa status = StatusTarefa.fromTexto(partes[0]);
+            String descricao = partes[1];
+            String observacao = partes[2];
+
+            return new Tarefa(
+                    descricao,
+                    observacao,
+                    "",
+                    status,
+                    TipoTarefa.DIARIA
+            );
+        }
+
+        if (partes.length >= 5) {
+            StatusTarefa status = StatusTarefa.fromTexto(partes[0]);
+            TipoTarefa tipo = TipoTarefa.fromTexto(partes[1]);
+            String dataReferencia = partes[2];
+            String descricao = partes[3];
+            String observacao = partes[4];
+
+            return new Tarefa(
+                    descricao,
+                    observacao,
+                    dataReferencia,
+                    status,
+                    tipo
+            );
+        }
+
+        return null;
+    }
+
     public void salvar(Map<String, List<Tarefa>> categorias) {
         try (BufferedWriter writer = Files.newBufferedWriter(ARQUIVO)) {
             for (Map.Entry<String, List<Tarefa>> categoria : categorias.entrySet()) {
@@ -77,9 +122,13 @@ public class TarefaRepository {
                     writer.write(
                             tarefa.getStatus().name()
                                     + ";"
-                                    + limparQuebraLinha(tarefa.getDescricao())
+                                    + tarefa.getTipo().name()
                                     + ";"
-                                    + limparQuebraLinha(tarefa.getObservacao())
+                                    + limparTexto(tarefa.getDataReferencia())
+                                    + ";"
+                                    + limparTexto(tarefa.getDescricao())
+                                    + ";"
+                                    + limparTexto(tarefa.getObservacao())
                     );
                     writer.newLine();
                 }
@@ -91,14 +140,15 @@ public class TarefaRepository {
         }
     }
 
-    private String limparQuebraLinha(String texto) {
+    private String limparTexto(String texto) {
         if (texto == null) {
             return "";
         }
 
         return texto
                 .replace("\r", " ")
-                .replace("\n", " ");
+                .replace("\n", " ")
+                .replace(";", ",");
     }
 
     private void criarCategoriasPadrao(Map<String, List<Tarefa>> categorias) {

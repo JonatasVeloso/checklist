@@ -1,34 +1,35 @@
 package br.com.checklist;
 
 import javax.swing.BorderFactory;
+import javax.swing.DefaultCellEditor;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.DropMode;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
-import javax.swing.DropMode;
 import javax.swing.RowFilter;
 import javax.swing.TransferHandler;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableRowSorter;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.JLabel;
-import javax.swing.DefaultCellEditor;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.JList;
-import javax.swing.table.DefaultTableCellRenderer;
-import java.awt.Color;
 
 public class CategoriaChecklistPanel extends JPanel {
 
@@ -40,6 +41,7 @@ public class CategoriaChecklistPanel extends JPanel {
 
     private final JTextField campoTarefa = new JTextField();
     private final javax.swing.JCheckBox filtroNaoFinalizadas = new javax.swing.JCheckBox("Mostrar apenas não finalizadas");
+    private final JComboBox<String> filtroTipo = new JComboBox<>();
 
     public CategoriaChecklistPanel(List<Tarefa> tarefas, Runnable onAlteracao) {
         this.onAlteracao = onAlteracao;
@@ -74,12 +76,27 @@ public class CategoriaChecklistPanel extends JPanel {
 
         filtroNaoFinalizadas.addActionListener(e -> aplicarFiltro());
 
+        filtroTipo.addItem("TODAS");
+        for (TipoTarefa tipo : TipoTarefa.values()) {
+            filtroTipo.addItem(tipo.name());
+        }
+        filtroTipo.addActionListener(e -> aplicarFiltro());
+
         JPanel painelInput = new JPanel(new BorderLayout(10, 10));
         painelInput.add(campoTarefa, BorderLayout.CENTER);
         painelInput.add(botaoAdicionar, BorderLayout.EAST);
 
+        JPanel painelFiltros = new JPanel(new BorderLayout(10, 10));
+        painelFiltros.add(filtroNaoFinalizadas, BorderLayout.WEST);
+
+        JPanel painelTipo = new JPanel(new BorderLayout(5, 5));
+        painelTipo.add(new JLabel("Tipo:"), BorderLayout.WEST);
+        painelTipo.add(filtroTipo, BorderLayout.CENTER);
+
+        painelFiltros.add(painelTipo, BorderLayout.EAST);
+
         painel.add(painelInput, BorderLayout.CENTER);
-        painel.add(filtroNaoFinalizadas, BorderLayout.SOUTH);
+        painel.add(painelFiltros, BorderLayout.SOUTH);
 
         return painel;
     }
@@ -88,27 +105,26 @@ public class CategoriaChecklistPanel extends JPanel {
         tabelaTarefas.setModel(tableModel);
         tabelaTarefas.setRowSorter(sorter);
 
+        for (int i = 0; i < tableModel.getColumnCount(); i++) {
+            sorter.setSortable(i, false);
+        }
+
         tabelaTarefas.setFont(new Font("Arial", Font.PLAIN, 16));
         tabelaTarefas.setRowHeight(32);
         tabelaTarefas.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         tabelaTarefas.getTableHeader().setReorderingAllowed(false);
 
-        TableColumn colunaStatus = tabelaTarefas.getColumnModel().getColumn(0);
-        colunaStatus.setMinWidth(120);
-        colunaStatus.setMaxWidth(150);
-        colunaStatus.setPreferredWidth(130);
+        configurarColunaStatus();
+        configurarColunaTipo();
 
-        JComboBox<StatusTarefa> comboStatus = new JComboBox<>(StatusTarefa.values());
-        comboStatus.setRenderer(new StatusComboBoxRenderer());
-
-        colunaStatus.setCellEditor(new DefaultCellEditor(comboStatus));
+        tabelaTarefas.getColumnModel().getColumn(2).setPreferredWidth(130);
+        tabelaTarefas.getColumnModel().getColumn(3).setPreferredWidth(350);
+        tabelaTarefas.getColumnModel().getColumn(4).setPreferredWidth(350);
 
         tabelaTarefas.setDefaultRenderer(StatusTarefa.class, new StatusTableCellRenderer());
-        tabelaTarefas.setDefaultRenderer(String.class, new TarefaTableCellRenderer());
-
-        tabelaTarefas.getColumnModel().getColumn(1).setPreferredWidth(350);
-        tabelaTarefas.getColumnModel().getColumn(2).setPreferredWidth(350);
+        tabelaTarefas.setDefaultRenderer(TipoTarefa.class, new TipoTableCellRenderer());
+        tabelaTarefas.setDefaultRenderer(String.class, new TextoTableCellRenderer());
 
         tabelaTarefas.setDragEnabled(true);
         tabelaTarefas.setDropMode(DropMode.INSERT_ROWS);
@@ -118,6 +134,28 @@ public class CategoriaChecklistPanel extends JPanel {
         scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
 
         return scrollPane;
+    }
+
+    private void configurarColunaStatus() {
+        TableColumn colunaStatus = tabelaTarefas.getColumnModel().getColumn(0);
+        colunaStatus.setMinWidth(120);
+        colunaStatus.setMaxWidth(150);
+        colunaStatus.setPreferredWidth(130);
+
+        JComboBox<StatusTarefa> comboStatus = new JComboBox<>(StatusTarefa.values());
+        comboStatus.setRenderer(new StatusComboBoxRenderer());
+
+        colunaStatus.setCellEditor(new DefaultCellEditor(comboStatus));
+    }
+
+    private void configurarColunaTipo() {
+        TableColumn colunaTipo = tabelaTarefas.getColumnModel().getColumn(1);
+        colunaTipo.setMinWidth(120);
+        colunaTipo.setMaxWidth(150);
+        colunaTipo.setPreferredWidth(130);
+
+        JComboBox<TipoTarefa> comboTipo = new JComboBox<>(TipoTarefa.values());
+        colunaTipo.setCellEditor(new DefaultCellEditor(comboTipo));
     }
 
     private JPanel criarPainelBotoes() {
@@ -140,17 +178,28 @@ public class CategoriaChecklistPanel extends JPanel {
     }
 
     private void aplicarFiltro() {
-        if (filtroNaoFinalizadas.isSelected()) {
-            sorter.setRowFilter(new RowFilter<>() {
-                @Override
-                public boolean include(Entry<? extends TarefasTableModel, ? extends Integer> entry) {
-                    StatusTarefa status = (StatusTarefa) entry.getValue(0);
-                    return !StatusTarefa.DONE.equals(status);
+        sorter.setRowFilter(new RowFilter<>() {
+            @Override
+            public boolean include(Entry<? extends TarefasTableModel, ? extends Integer> entry) {
+                StatusTarefa status = (StatusTarefa) entry.getValue(0);
+                TipoTarefa tipo = (TipoTarefa) entry.getValue(1);
+
+                boolean mostrarPorStatus = true;
+                boolean mostrarPorTipo = true;
+
+                if (filtroNaoFinalizadas.isSelected()) {
+                    mostrarPorStatus = !StatusTarefa.DONE.equals(status);
                 }
-            });
-        } else {
-            sorter.setRowFilter(null);
-        }
+
+                String tipoSelecionado = String.valueOf(filtroTipo.getSelectedItem());
+
+                if (!"TODAS".equals(tipoSelecionado)) {
+                    mostrarPorTipo = tipo.name().equals(tipoSelecionado);
+                }
+
+                return mostrarPorStatus && mostrarPorTipo;
+            }
+        });
     }
 
     private void adicionarTarefa() {
@@ -166,7 +215,13 @@ public class CategoriaChecklistPanel extends JPanel {
             return;
         }
 
-        tableModel.adicionar(new Tarefa(descricao, StatusTarefa.PENDING));
+        tableModel.adicionar(new Tarefa(
+                descricao,
+                "",
+                "",
+                StatusTarefa.PENDING,
+                TipoTarefa.DIARIA
+        ));
 
         campoTarefa.setText("");
         campoTarefa.requestFocus();
@@ -258,7 +313,7 @@ public class CategoriaChecklistPanel extends JPanel {
 
     private class TarefasTableModel extends AbstractTableModel {
 
-        private final String[] colunas = {"Status", "Tarefa", "Observação"};
+        private final String[] colunas = {"Status", "Tipo", "Data", "Tarefa", "Observação"};
         private final List<Tarefa> tarefas = new ArrayList<>();
 
         @Override
@@ -282,6 +337,10 @@ public class CategoriaChecklistPanel extends JPanel {
                 return StatusTarefa.class;
             }
 
+            if (columnIndex == 1) {
+                return TipoTarefa.class;
+            }
+
             return String.class;
         }
 
@@ -294,15 +353,14 @@ public class CategoriaChecklistPanel extends JPanel {
         public Object getValueAt(int rowIndex, int columnIndex) {
             Tarefa tarefa = tarefas.get(rowIndex);
 
-            if (columnIndex == 0) {
-                return tarefa.getStatus();
-            }
-
-            if (columnIndex == 1) {
-                return tarefa.getDescricao();
-            }
-
-            return tarefa.getObservacao();
+            return switch (columnIndex) {
+                case 0 -> tarefa.getStatus();
+                case 1 -> tarefa.getTipo();
+                case 2 -> tarefa.getDataReferencia();
+                case 3 -> tarefa.getDescricao();
+                case 4 -> tarefa.getObservacao();
+                default -> "";
+            };
         }
 
         @Override
@@ -310,25 +368,80 @@ public class CategoriaChecklistPanel extends JPanel {
             Tarefa tarefa = tarefas.get(rowIndex);
 
             if (columnIndex == 0) {
-                if (valor instanceof StatusTarefa status) {
-                    tarefa.setStatus(status);
-                } else {
-                    tarefa.setStatus(StatusTarefa.fromTexto(String.valueOf(valor)));
-                }
+                atualizarStatus(tarefa, valor);
             } else if (columnIndex == 1) {
-                String novaDescricao = String.valueOf(valor).trim();
-
-                if (!novaDescricao.isEmpty()) {
-                    tarefa.setDescricao(novaDescricao);
-                }
+                atualizarTipo(tarefa, valor);
             } else if (columnIndex == 2) {
-                String novaObservacao = String.valueOf(valor).trim();
-                tarefa.setObservacao(novaObservacao);
+                atualizarData(tarefa, valor);
+            } else if (columnIndex == 3) {
+                atualizarDescricao(tarefa, valor);
+            } else if (columnIndex == 4) {
+                atualizarObservacao(tarefa, valor);
             }
 
             fireTableRowsUpdated(rowIndex, rowIndex);
             aplicarFiltro();
             notificarAlteracao();
+        }
+
+        private void atualizarStatus(Tarefa tarefa, Object valor) {
+            if (valor instanceof StatusTarefa status) {
+                tarefa.setStatus(status);
+            } else {
+                tarefa.setStatus(StatusTarefa.fromTexto(String.valueOf(valor)));
+            }
+        }
+
+        private void atualizarTipo(Tarefa tarefa, Object valor) {
+            TipoTarefa novoTipo;
+
+            if (valor instanceof TipoTarefa tipo) {
+                novoTipo = tipo;
+            } else {
+                novoTipo = TipoTarefa.fromTexto(String.valueOf(valor));
+            }
+
+            tarefa.setTipo(novoTipo);
+
+            String dataAjustada = DataTarefaValidator.ajustarAoTrocarTipo(
+                    novoTipo,
+                    tarefa.getDataReferencia()
+            );
+
+            tarefa.setDataReferencia(dataAjustada);
+        }
+
+        private void atualizarData(Tarefa tarefa, Object valor) {
+            String dataDigitada = String.valueOf(valor).trim();
+
+            DataTarefaValidator.ResultadoValidacao resultado = DataTarefaValidator.normalizar(
+                    tarefa.getTipo(),
+                    dataDigitada
+            );
+
+            if (!resultado.valida()) {
+                JOptionPane.showMessageDialog(
+                        CategoriaChecklistPanel.this,
+                        resultado.mensagemErro(),
+                        "Data inválida",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            tarefa.setDataReferencia(resultado.valorNormalizado());
+        }
+
+        private void atualizarDescricao(Tarefa tarefa, Object valor) {
+            String novaDescricao = String.valueOf(valor).trim();
+
+            if (!novaDescricao.isEmpty()) {
+                tarefa.setDescricao(novaDescricao);
+            }
+        }
+
+        private void atualizarObservacao(Tarefa tarefa, Object valor) {
+            tarefa.setObservacao(String.valueOf(valor).trim());
         }
 
         public void adicionar(Tarefa tarefa) {
@@ -434,7 +547,7 @@ public class CategoriaChecklistPanel extends JPanel {
         }
 
         @Override
-        public java.awt.Component getTableCellRendererComponent(
+        public Component getTableCellRendererComponent(
                 JTable table,
                 Object value,
                 boolean isSelected,
@@ -442,7 +555,7 @@ public class CategoriaChecklistPanel extends JPanel {
                 int row,
                 int column
         ) {
-            java.awt.Component component = super.getTableCellRendererComponent(
+            Component component = super.getTableCellRendererComponent(
                     table,
                     value,
                     isSelected,
@@ -467,10 +580,19 @@ public class CategoriaChecklistPanel extends JPanel {
         }
     }
 
-    private class TarefaTableCellRenderer extends DefaultTableCellRenderer {
+    private static class TipoTableCellRenderer extends DefaultTableCellRenderer {
 
         @Override
-        public java.awt.Component getTableCellRendererComponent(
+        protected void setValue(Object value) {
+            if (value instanceof TipoTarefa tipo) {
+                setText(tipo.name());
+            } else {
+                setText("");
+            }
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(
                 JTable table,
                 Object value,
                 boolean isSelected,
@@ -478,7 +600,43 @@ public class CategoriaChecklistPanel extends JPanel {
                 int row,
                 int column
         ) {
-            java.awt.Component component = super.getTableCellRendererComponent(
+            Component component = super.getTableCellRendererComponent(
+                    table,
+                    value,
+                    isSelected,
+                    hasFocus,
+                    row,
+                    column
+            );
+
+            if (!isSelected) {
+                component.setBackground(table.getBackground());
+                component.setForeground(Color.BLACK);
+            }
+
+            if (isSelected) {
+                component.setBackground(table.getSelectionBackground());
+                component.setForeground(table.getSelectionForeground());
+            }
+
+            setHorizontalAlignment(JLabel.CENTER);
+
+            return component;
+        }
+    }
+
+    private class TextoTableCellRenderer extends DefaultTableCellRenderer {
+
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table,
+                Object value,
+                boolean isSelected,
+                boolean hasFocus,
+                int row,
+                int column
+        ) {
+            Component component = super.getTableCellRendererComponent(
                     table,
                     value,
                     isSelected,
@@ -507,14 +665,14 @@ public class CategoriaChecklistPanel extends JPanel {
     private static class StatusComboBoxRenderer extends DefaultListCellRenderer {
 
         @Override
-        public java.awt.Component getListCellRendererComponent(
+        public Component getListCellRendererComponent(
                 JList<?> list,
                 Object value,
                 int index,
                 boolean isSelected,
                 boolean cellHasFocus
         ) {
-            java.awt.Component component = super.getListCellRendererComponent(
+            Component component = super.getListCellRendererComponent(
                     list,
                     value,
                     index,

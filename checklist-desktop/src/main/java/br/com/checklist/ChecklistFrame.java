@@ -18,9 +18,12 @@ import java.util.Map;
 
 public class ChecklistFrame extends JFrame {
 
+    private static final String ABA_HOJE = "HOJE";
+
     private final TarefaRepository repository = new TarefaRepository();
 
     private final JTabbedPane abas = new JTabbedPane();
+    private final HojeChecklistPanel hojeChecklistPanel = new HojeChecklistPanel();
 
     public ChecklistFrame() {
         configurarJanela();
@@ -30,8 +33,8 @@ public class ChecklistFrame extends JFrame {
 
     private void configurarJanela() {
         setTitle("Checklist de Tarefas");
-        setSize(760, 580);
-        setMinimumSize(new Dimension(600, 460));
+        setSize(900, 620);
+        setMinimumSize(new Dimension(720, 500));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
     }
@@ -69,6 +72,7 @@ public class ChecklistFrame extends JFrame {
         JButton botaoNovaAba = new JButton("Nova aba");
         JButton botaoRenomearAba = new JButton("Renomear aba");
         JButton botaoExcluirAba = new JButton("Excluir aba atual");
+        JButton botaoAtualizarHoje = new JButton("Atualizar HOJE");
 
         JButton botaoAbaEsquerda = new JButton("Aba para esquerda");
         JButton botaoAbaDireita = new JButton("Aba para direita");
@@ -76,6 +80,7 @@ public class ChecklistFrame extends JFrame {
         botaoNovaAba.addActionListener(e -> criarNovaAba());
         botaoRenomearAba.addActionListener(e -> renomearAbaAtual());
         botaoExcluirAba.addActionListener(e -> excluirAbaAtual());
+        botaoAtualizarHoje.addActionListener(e -> atualizarHoje());
 
         botaoAbaEsquerda.addActionListener(e -> moverAbaParaEsquerda());
         botaoAbaDireita.addActionListener(e -> moverAbaParaDireita());
@@ -83,6 +88,7 @@ public class ChecklistFrame extends JFrame {
         painelAbas.add(botaoNovaAba);
         painelAbas.add(botaoRenomearAba);
         painelAbas.add(botaoExcluirAba);
+        painelAbas.add(botaoAtualizarHoje);
 
         painelOrdemAbas.add(botaoAbaEsquerda);
         painelOrdemAbas.add(botaoAbaDireita);
@@ -94,17 +100,21 @@ public class ChecklistFrame extends JFrame {
     }
 
     private void carregarCategorias() {
+        abas.addTab(ABA_HOJE, hojeChecklistPanel);
+
         Map<String, List<Tarefa>> categorias = repository.carregar();
 
         for (Map.Entry<String, List<Tarefa>> categoria : categorias.entrySet()) {
             adicionarAba(categoria.getKey(), categoria.getValue());
         }
+
+        atualizarHoje();
     }
 
     private void adicionarAba(String nomeCategoria, List<Tarefa> tarefas) {
         CategoriaChecklistPanel painel = new CategoriaChecklistPanel(
                 tarefas,
-                this::salvarCategorias
+                this::salvarCategoriasEAtualizarHoje
         );
 
         abas.addTab(nomeCategoria, painel);
@@ -134,6 +144,16 @@ public class ChecklistFrame extends JFrame {
             return;
         }
 
+        if (ABA_HOJE.equalsIgnoreCase(nome)) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "O nome HOJE é reservado para a visualização automática.",
+                    "Atenção",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
         if (existeAba(nome)) {
             JOptionPane.showMessageDialog(
                     this,
@@ -147,13 +167,23 @@ public class ChecklistFrame extends JFrame {
         adicionarAba(nome, List.of());
         abas.setSelectedIndex(abas.getTabCount() - 1);
 
-        salvarCategorias();
+        salvarCategoriasEAtualizarHoje();
     }
 
     private void renomearAbaAtual() {
         int index = abas.getSelectedIndex();
 
         if (index < 0) {
+            return;
+        }
+
+        if (ehAbaHoje(index)) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "A aba HOJE não pode ser renomeada.",
+                    "Atenção",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return;
         }
 
@@ -181,6 +211,16 @@ public class ChecklistFrame extends JFrame {
             return;
         }
 
+        if (ABA_HOJE.equalsIgnoreCase(novoNome)) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "O nome HOJE é reservado para a visualização automática.",
+                    "Atenção",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
         if (!novoNome.equalsIgnoreCase(nomeAtual) && existeAba(novoNome)) {
             JOptionPane.showMessageDialog(
                     this,
@@ -192,7 +232,7 @@ public class ChecklistFrame extends JFrame {
         }
 
         abas.setTitleAt(index, novoNome);
-        salvarCategorias();
+        salvarCategoriasEAtualizarHoje();
     }
 
     private void excluirAbaAtual() {
@@ -202,10 +242,20 @@ public class ChecklistFrame extends JFrame {
             return;
         }
 
-        if (abas.getTabCount() == 1) {
+        if (ehAbaHoje(index)) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Você precisa manter pelo menos uma aba.",
+                    "A aba HOJE não pode ser excluída.",
+                    "Atenção",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        if (quantidadeAbasEditaveis() == 1) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Você precisa manter pelo menos uma aba de tarefas.",
                     "Atenção",
                     JOptionPane.WARNING_MESSAGE
             );
@@ -226,13 +276,13 @@ public class ChecklistFrame extends JFrame {
         }
 
         abas.removeTabAt(index);
-        salvarCategorias();
+        salvarCategoriasEAtualizarHoje();
     }
 
     private void moverAbaParaEsquerda() {
         int index = abas.getSelectedIndex();
 
-        if (index <= 0) {
+        if (index <= 1) {
             return;
         }
 
@@ -242,7 +292,7 @@ public class ChecklistFrame extends JFrame {
     private void moverAbaParaDireita() {
         int index = abas.getSelectedIndex();
 
-        if (index < 0 || index >= abas.getTabCount() - 1) {
+        if (index <= 0 || index >= abas.getTabCount() - 1) {
             return;
         }
 
@@ -260,7 +310,7 @@ public class ChecklistFrame extends JFrame {
         abas.insertTab(titulo, icone, componente, tooltip, destino);
         abas.setSelectedIndex(destino);
 
-        salvarCategorias();
+        salvarCategoriasEAtualizarHoje();
     }
 
     private boolean existeAba(String nome) {
@@ -273,16 +323,49 @@ public class ChecklistFrame extends JFrame {
         return false;
     }
 
+    private boolean ehAbaHoje(int index) {
+        return index >= 0 && ABA_HOJE.equalsIgnoreCase(abas.getTitleAt(index));
+    }
+
+    private int quantidadeAbasEditaveis() {
+        int quantidade = 0;
+
+        for (int i = 0; i < abas.getTabCount(); i++) {
+            if (!ehAbaHoje(i)) {
+                quantidade++;
+            }
+        }
+
+        return quantidade;
+    }
+
+    private void salvarCategoriasEAtualizarHoje() {
+        salvarCategorias();
+        atualizarHoje();
+    }
+
     private void salvarCategorias() {
+        repository.salvar(obterCategoriasComTarefas());
+    }
+
+    private void atualizarHoje() {
+        hojeChecklistPanel.atualizar(obterCategoriasComTarefas());
+    }
+
+    private Map<String, List<Tarefa>> obterCategoriasComTarefas() {
         Map<String, List<Tarefa>> categorias = new LinkedHashMap<>();
 
         for (int i = 0; i < abas.getTabCount(); i++) {
+            if (ehAbaHoje(i)) {
+                continue;
+            }
+
             String nomeCategoria = abas.getTitleAt(i);
             CategoriaChecklistPanel painel = (CategoriaChecklistPanel) abas.getComponentAt(i);
 
             categorias.put(nomeCategoria, painel.getTarefas());
         }
 
-        repository.salvar(categorias);
+        return categorias;
     }
 }

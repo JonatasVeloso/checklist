@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Checklist Web</title>
+
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="app-header">
+    <div>
+        <h1>Checklist Web</h1>
+        <p>Organize suas tarefas por categoria, tipo e status.</p>
+    </div>
+</header>
+
+<main class="app-container">
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Categorias</h2>
+            <button onclick="openCategoryForm()">Nova categoria</button>
+        </div>
+
+        <div id="categoryTabs" class="tabs"></div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h2 id="taskTitle">Tarefas</h2>
+                <p id="taskSubtitle">Selecione uma categoria ou veja as tarefas de hoje.</p>
+            </div>
+
+            <button onclick="openTaskForm()">Nova tarefa</button>
+        </div>
+
+        <div class="filters">
+            <button onclick="loadTodayTasks()">Hoje</button>
+            <button onclick="loadAllTasks()">Todas</button>
+        </div>
+
+        <div id="taskList" class="task-list"></div>
+    </section>
+
+</main>
+
+<div id="categoryModal" class="modal hidden">
+    <div class="modal-content">
+        <h2>Nova categoria</h2>
+
+        <label>Nome</label>
+        <input id="categoryName" type="text" placeholder="Ex: Doméstico" />
+
+        <label>Ordem</label>
+        <input id="categoryOrder" type="number" value="1" />
+
+        <div class="modal-actions">
+            <button class="secondary" onclick="closeCategoryForm()">Cancelar</button>
+            <button onclick="saveCategory()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div id="taskModal" class="modal hidden">
+    <div class="modal-content">
+        <h2 id="taskModalTitle">Nova tarefa</h2>
+
+        <input id="taskId" type="hidden" />
+
+        <label>Categoria</label>
+        <select id="taskCategory"></select>
+
+        <label>Descrição</label>
+        <input id="taskDescription" type="text" placeholder="Ex: Lavar a louça" />
+
+        <label>Observação</label>
+        <textarea id="taskObservation" placeholder="Detalhes da tarefa"></textarea>
+
+        <label>Status</label>
+        <select id="taskStatus">
+            <option value="PENDING">Pendente</option>
+            <option value="DOING">Fazendo</option>
+            <option value="WAITING">Aguardando</option>
+            <option value="DONE">Concluído</option>
+        </select>
+
+        <label>Tipo</label>
+        <select id="taskType">
+            <option value="DIARIA">Diária</option>
+            <option value="SEMANAL">Semanal</option>
+            <option value="MENSAL">Mensal</option>
+            <option value="PROGRAMADA">Programada</option>
+        </select>
+
+        <label>Data de referência</label>
+        <input id="taskReferenceDate" type="date" />
+
+        <label>Ordem</label>
+        <input id="taskOrder" type="number" value="1" />
+
+        <div class="modal-actions">
+            <button class="secondary" onclick="closeTaskForm()">Cancelar</button>
+            <button onclick="saveTask()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
