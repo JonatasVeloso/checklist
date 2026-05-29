@@ -20,6 +20,11 @@ public class CategoryController {
         return categoryService.findAllActive();
     }
 
+    @GetMapping("/person/{person}")
+    public List<CategoryResponse> findByPerson(@PathVariable ChecklistPerson person) {
+        return categoryService.findByPerson(person);
+    }
+
     @PostMapping
     public CategoryResponse create(@RequestBody @Valid CategoryRequest request) {
         return categoryService.create(request);

@@ -21,11 +21,19 @@ public class CategoryService {
                 .toList();
     }
 
+    public List<CategoryResponse> findByPerson(ChecklistPerson person) {
+        return categoryRepository.findByPersonAndActiveTrueOrderByDisplayOrderAscNameAsc(person)
+                .stream()
+                .map(CategoryResponse::new)
+                .toList();
+    }
+
     @Transactional
     public CategoryResponse create(CategoryRequest request) {
         Category category = new Category();
         category.setName(request.getName());
         category.setDisplayOrder(request.getDisplayOrder());
+        category.setPerson(request.getPerson());
         category.setActive(true);
 
         Category savedCategory = categoryRepository.save(category);
@@ -39,6 +47,7 @@ public class CategoryService {
 
         category.setName(request.getName());
         category.setDisplayOrder(request.getDisplayOrder());
+        category.setPerson(request.getPerson());
 
         return new CategoryResponse(category);
     }

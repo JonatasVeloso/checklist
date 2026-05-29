@@ -6,6 +6,8 @@ public class CategoryResponse {
     private String name;
     private Integer displayOrder;
     private Boolean active;
+    private ChecklistPerson person;
+    private String personLabel;
 
     public CategoryResponse() {
     }
@@ -15,6 +17,8 @@ public class CategoryResponse {
         this.name = category.getName();
         this.displayOrder = category.getDisplayOrder();
         this.active = category.getActive();
+        this.person = category.getPerson();
+        this.personLabel = category.getPerson().getLabel();
     }
 
     public Long getId() {
@@ -31,5 +35,13 @@ public class CategoryResponse {
 
     public Boolean getActive() {
         return active;
+    }
+
+    public ChecklistPerson getPerson() {
+        return person;
+    }
+
+    public String getPersonLabel() {
+        return personLabel;
     }
 }

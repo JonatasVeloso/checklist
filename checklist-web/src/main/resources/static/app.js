@@ -3,14 +3,86 @@ const API_BASE_URL = "";
 let categories = [];
 let currentCategoryId = null;
 let currentView = "today";
+let selectedPerson = null;
+let selectedPersonLabel = null;
+let selectedTaskActionId = null;
+let currentStatusFilter = "ALL";
 
-document.addEventListener("DOMContentLoaded", async () => {
-    await loadCategories();
-    await loadTodayTasks();
+document.addEventListener("DOMContentLoaded", () => {
+    showPersonScreen();
 });
 
+function showPersonScreen() {
+    document.getElementById("personScreen").classList.remove("hidden");
+    document.getElementById("appScreen").classList.add("hidden");
+}
+
+async function selectPerson(person, label) {
+    selectedPerson = person;
+    selectedPersonLabel = label;
+
+    document.getElementById("selectedPersonLabel").textContent = `Pessoa selecionada: ${label}`;
+    document.getElementById("personScreen").classList.add("hidden");
+    document.getElementById("appScreen").classList.remove("hidden");
+
+    currentCategoryId = null;
+    currentView = "today";
+    currentStatusFilter = "ALL";
+    selectedTaskActionId = null;
+
+    await loadCategories();
+    await loadTasksForCurrentFilters();
+}
+
+function backToPersonScreen() {
+    selectedPerson = null;
+    selectedPersonLabel = null;
+    currentCategoryId = null;
+    currentView = "today";
+    currentStatusFilter = "ALL";
+    selectedTaskActionId = null;
+    categories = [];
+
+    document.getElementById("categoryTabs").innerHTML = "";
+    document.getElementById("taskList").innerHTML = "";
+
+    showPersonScreen();
+}
+
+async function selectStatusFilter(status) {
+    currentStatusFilter = status;
+    selectedTaskActionId = null;
+
+    updateStatusFilterButtons();
+    await loadTasksForCurrentFilters();
+}
+
+function updateStatusFilterButtons() {
+    const buttons = {
+        ALL: document.getElementById("statusFilterAll"),
+        PENDING: document.getElementById("statusFilterPending"),
+        DOING: document.getElementById("statusFilterDoing"),
+        WAITING: document.getElementById("statusFilterWaiting"),
+        DONE: document.getElementById("statusFilterDone")
+    };
+
+    Object.entries(buttons).forEach(([status, button]) => {
+        if (!button) {
+            return;
+        }
+
+        button.className = status === currentStatusFilter
+            ? "btn btn-primary"
+            : "btn btn-outline-primary";
+    });
+}
+
 async function loadCategories() {
-    const response = await fetch(`${API_BASE_URL}/api/categories`);
+    if (!selectedPerson) {
+        return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/categories/person/${selectedPerson}`);
 
     if (!response.ok) {
         alert("Erro ao buscar categorias.");
@@ -19,24 +91,32 @@ async function loadCategories() {
 
     categories = await response.json();
 
-    renderCategoryTabs();
+    renderCategoryFilters();
     renderCategoryOptions();
 }
 
-function renderCategoryTabs() {
+function renderCategoryFilters() {
     const container = document.getElementById("categoryTabs");
     container.innerHTML = "";
 
+    const allButton = document.createElement("button");
+    allButton.className = currentCategoryId === null
+        ? "btn btn-primary"
+        : "btn btn-outline-primary";
+
+    allButton.textContent = "Todas categorias";
+    allButton.onclick = () => selectCategoryFilter(null);
+
+    container.appendChild(allButton);
+
     categories.forEach(category => {
         const button = document.createElement("button");
-        button.className = "tab";
-
-        if (category.id === currentCategoryId) {
-            button.classList.add("active");
-        }
+        button.className = category.id === currentCategoryId
+            ? "btn btn-primary"
+            : "btn btn-outline-primary";
 
         button.textContent = category.name;
-        button.onclick = () => loadTasksByCategory(category.id, category.name);
+        button.onclick = () => selectCategoryFilter(category.id);
 
         container.appendChild(button);
     });
@@ -55,64 +135,101 @@ function renderCategoryOptions() {
     });
 }
 
+async function selectCategoryFilter(categoryId) {
+    currentCategoryId = categoryId;
+    selectedTaskActionId = null;
+
+    renderCategoryFilters();
+    await loadTasksForCurrentFilters();
+}
+
 async function loadTodayTasks() {
     currentView = "today";
-    currentCategoryId = null;
+    selectedTaskActionId = null;
 
-    document.getElementById("taskTitle").textContent = "Hoje";
-    document.getElementById("taskSubtitle").textContent = "Tarefas que precisam de atenção hoje.";
-
-    renderCategoryTabs();
-
-    const response = await fetch(`${API_BASE_URL}/api/tasks/today`);
-
-    if (!response.ok) {
-        alert("Erro ao buscar tarefas de hoje.");
-        return;
-    }
-
-    const tasks = await response.json();
-    renderTasks(tasks);
+    updateViewFilterButtons();
+    await loadTasksForCurrentFilters();
 }
 
 async function loadAllTasks() {
     currentView = "all";
-    currentCategoryId = null;
+    selectedTaskActionId = null;
 
-    document.getElementById("taskTitle").textContent = "Todas as tarefas";
-    document.getElementById("taskSubtitle").textContent = "Lista completa de tarefas cadastradas.";
+    updateViewFilterButtons();
+    await loadTasksForCurrentFilters();
+}
 
-    renderCategoryTabs();
+function updateViewFilterButtons() {
+    const todayButton = document.getElementById("todayFilterButton");
+    const allButton = document.getElementById("allFilterButton");
 
-    const response = await fetch(`${API_BASE_URL}/api/tasks`);
+    if (currentView === "today") {
+        todayButton.className = "btn btn-primary";
+        allButton.className = "btn btn-outline-primary";
+        return;
+    }
+
+    todayButton.className = "btn btn-outline-primary";
+    allButton.className = "btn btn-primary";
+}
+
+async function loadTasksForCurrentFilters() {
+    if (!selectedPerson) {
+        return;
+    }
+
+    updateViewFilterButtons();
+    updateStatusFilterButtons();
+    renderCategoryFilters();
+
+    const url = currentView === "today"
+        ? `${API_BASE_URL}/api/tasks/today/person/${selectedPerson}`
+        : `${API_BASE_URL}/api/tasks/person/${selectedPerson}`;
+
+    const response = await fetch(url);
 
     if (!response.ok) {
         alert("Erro ao buscar tarefas.");
         return;
     }
 
-    const tasks = await response.json();
+    let tasks = await response.json();
+
+    if (currentCategoryId !== null) {
+        tasks = tasks.filter(task => task.categoryId === currentCategoryId);
+    }
+
+    if (currentStatusFilter !== "ALL") {
+        tasks = tasks.filter(task => task.status === currentStatusFilter);
+    }
+
+    updateTaskHeader();
     renderTasks(tasks);
 }
 
-async function loadTasksByCategory(categoryId, categoryName) {
-    currentView = "category";
-    currentCategoryId = categoryId;
+function updateTaskHeader() {
+    const viewLabel = currentView === "today" ? "Hoje" : "Todas";
 
-    document.getElementById("taskTitle").textContent = categoryName;
-    document.getElementById("taskSubtitle").textContent = "Tarefas desta categoria.";
+    let categoryLabel = "Todas categorias";
 
-    renderCategoryTabs();
-
-    const response = await fetch(`${API_BASE_URL}/api/tasks/category/${categoryId}`);
-
-    if (!response.ok) {
-        alert("Erro ao buscar tarefas por categoria.");
-        return;
+    if (currentCategoryId !== null) {
+        const category = categories.find(item => item.id === currentCategoryId);
+        categoryLabel = category ? category.name : "Categoria";
     }
 
-    const tasks = await response.json();
-    renderTasks(tasks);
+    const statusLabel = translateStatusFilter(currentStatusFilter);
+
+    document.getElementById("taskTitle").textContent = "Tarefas";
+    document.getElementById("taskSubtitle").textContent =
+        `Visualização: ${viewLabel} | Status: ${statusLabel} | Categoria: ${categoryLabel} | Pessoa: ${selectedPersonLabel}`;
+}
+
+function translateStatusFilter(status) {
+    if (status === "ALL") {
+        return "Todos";
+    }
+
+    return translateStatus(status);
 }
 
 function renderTasks(tasks) {
@@ -120,47 +237,169 @@ function renderTasks(tasks) {
     container.innerHTML = "";
 
     if (tasks.length === 0) {
-        container.innerHTML = `<div class="empty-message">Nenhuma tarefa encontrada.</div>`;
+        container.innerHTML = `
+            <div class="alert alert-secondary mb-0 text-center rounded-3">
+                Nenhuma tarefa encontrada.
+            </div>
+        `;
         return;
     }
 
-    tasks.forEach(task => {
-        const card = document.createElement("article");
-        card.className = "task-card";
+    const tableWrapper = document.createElement("div");
+    tableWrapper.className = "table-responsive";
 
-        card.innerHTML = `
-            <div class="task-card-header">
-                <div>
-                    <h3>${escapeHtml(task.description)}</h3>
-                    <p>${escapeHtml(task.observation || "")}</p>
-                </div>
+    tableWrapper.innerHTML = `
+        <table class="table table-sm table-hover align-middle mb-0 task-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Descrição</th>
+                    <th class="status-column">Status</th>
+                </tr>
+            </thead>
 
-                <span class="badge status-${task.status}">
-                    ${translateStatus(task.status)}
-                </span>
-            </div>
+            <tbody>
+                ${tasks.map(task => `
+                    <tr class="task-row ${selectedTaskActionId === task.id ? "table-active" : ""}"
+                        onclick="toggleTaskActions(${task.id})">
 
-            <div class="task-meta">
-                <span class="badge type-badge">${translateType(task.type)}</span>
-                <span class="badge type-badge">${escapeHtml(task.categoryName)}</span>
-                ${task.referenceDate ? `<span class="badge type-badge">${formatDate(task.referenceDate)}</span>` : ""}
-            </div>
+                        <td>
+                            <div class="fw-semibold task-description-cell">
+                                ${escapeHtml(task.description)}
+                            </div>
 
-            <div class="task-actions">
-                <button onclick="changeTaskStatus(${task.id}, 'PENDING')">Pendente</button>
-                <button onclick="changeTaskStatus(${task.id}, 'DOING')">Fazendo</button>
-                <button onclick="changeTaskStatus(${task.id}, 'WAITING')">Aguardando</button>
-                <button onclick="changeTaskStatus(${task.id}, 'DONE')">Concluir</button>
-                <button class="secondary" onclick='openTaskFormForEdit(${JSON.stringify(task)})'>Editar</button>
-                <button class="danger" onclick="deleteTask(${task.id})">Excluir</button>
-            </div>
-        `;
+                            ${task.observation ? `
+                                <div class="text-secondary small task-observation-preview">
+                                    ${escapeHtml(task.observation)}
+                                </div>
+                            ` : `
+                                <div class="text-secondary small">
+                                    Sem observação
+                                </div>
+                            `}
+                        </td>
 
-        container.appendChild(card);
+                        <td class="status-column">
+                            <div>
+                                <span class="badge ${getStatusBadgeClass(task.status)}">
+                                    ${translateStatus(task.status)}
+                                </span>
+                            </div>
+
+                            <div class="mt-1">
+                                <span class="badge text-bg-light border">
+                                    ${translateType(task.type)}
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+
+                    ${selectedTaskActionId === task.id ? `
+                        <tr class="task-detail-row">
+                            <td colspan="2">
+                                <div class="task-detail-card">
+
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-12 col-md-6">
+                                            <div class="detail-label">Categoria</div>
+                                            <div class="detail-value">${escapeHtml(task.categoryName)}</div>
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <div class="detail-label">Data de referência</div>
+                                            <div class="detail-value">
+                                                ${task.referenceDate ? formatDate(task.referenceDate) : "-"}
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <div class="detail-label">Status</div>
+                                            <div class="detail-value">${translateStatus(task.status)}</div>
+                                        </div>
+
+                                        <div class="col-12 col-md-6">
+                                            <div class="detail-label">Tipo</div>
+                                            <div class="detail-value">${translateType(task.type)}</div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="detail-label">Observação</div>
+                                            <div class="detail-value">
+                                                ${task.observation ? escapeHtml(task.observation) : "Sem observação"}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid d-md-flex gap-2 justify-content-md-end">
+                                        <button class="btn btn-success btn-sm"
+                                                onclick='event.stopPropagation(); markTaskAsDone(${task.id});'>
+                                            Concluído
+                                        </button>
+
+                                        <button class="btn btn-outline-secondary btn-sm"
+                                                onclick='event.stopPropagation(); openTaskFormForEdit(${JSON.stringify(task)});'>
+                                            Editar
+                                        </button>
+
+                                        <button class="btn btn-outline-danger btn-sm"
+                                                onclick="event.stopPropagation(); deleteTask(${task.id});">
+                                            Excluir
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    ` : ""}
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+
+    container.appendChild(tableWrapper);
+}
+
+function toggleTaskActions(taskId) {
+    if (selectedTaskActionId === taskId) {
+        selectedTaskActionId = null;
+    } else {
+        selectedTaskActionId = taskId;
+    }
+
+    loadTasksForCurrentFilters();
+}
+
+async function markTaskAsDone(taskId) {
+    const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/status?status=DONE`, {
+        method: "PATCH"
     });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+
+        alert(
+            "Erro ao concluir tarefa.\n\n" +
+            "Status HTTP: " + response.status + "\n\n" +
+            "Resposta do servidor:\n" + errorText
+        );
+
+        return;
+    }
+
+    selectedTaskActionId = null;
+
+    if (currentStatusFilter !== "ALL" && currentStatusFilter !== "DONE") {
+        currentStatusFilter = "ALL";
+    }
+
+    await loadTasksForCurrentFilters();
 }
 
 function openCategoryForm() {
+    if (!selectedPerson) {
+        alert("Selecione uma pessoa primeiro.");
+        return;
+    }
+
+    document.getElementById("categoryPerson").value = selectedPerson;
     document.getElementById("categoryName").value = "";
     document.getElementById("categoryOrder").value = categories.length + 1;
     document.getElementById("categoryModal").classList.remove("hidden");
@@ -171,6 +410,7 @@ function closeCategoryForm() {
 }
 
 async function saveCategory() {
+    const person = document.getElementById("categoryPerson").value;
     const name = document.getElementById("categoryName").value.trim();
     const displayOrder = Number(document.getElementById("categoryOrder").value);
 
@@ -179,29 +419,61 @@ async function saveCategory() {
         return;
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/categories`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            name,
-            displayOrder
-        })
-    });
+    const requestBody = {
+        name,
+        displayOrder,
+        person
+    };
 
-    if (!response.ok) {
-        alert("Erro ao salvar categoria.");
-        return;
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/categories`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+
+            console.error("Erro ao salvar categoria");
+            console.error("Status HTTP:", response.status);
+            console.error("Resposta:", errorText);
+            console.error("Body enviado:", requestBody);
+
+            alert(
+                "Erro ao salvar categoria.\n\n" +
+                "Status HTTP: " + response.status + "\n\n" +
+                "Resposta do servidor:\n" + errorText
+            );
+
+            return;
+        }
+
+        closeCategoryForm();
+        await loadCategories();
+        await loadTasksForCurrentFilters();
+
+    } catch (error) {
+        console.error("Erro de conexão ao salvar categoria:", error);
+        console.error("Body enviado:", requestBody);
+
+        alert(
+            "Erro de conexão ao salvar categoria.\n\n" +
+            "Verifique se você está acessando pelo ngrok e se o Spring Boot está rodando."
+        );
     }
-
-    closeCategoryForm();
-    await loadCategories();
 }
 
 function openTaskForm() {
+    if (!selectedPerson) {
+        alert("Selecione uma pessoa primeiro.");
+        return;
+    }
+
     if (categories.length === 0) {
-        alert("Cadastre uma categoria antes de criar tarefas.");
+        alert(`Cadastre uma categoria para ${selectedPersonLabel} antes de criar tarefas.`);
         return;
     }
 
@@ -281,25 +553,19 @@ async function saveTask() {
     });
 
     if (!response.ok) {
-        alert("Erro ao salvar tarefa.");
+        const errorText = await response.text();
+
+        alert(
+            "Erro ao salvar tarefa.\n\n" +
+            "Status HTTP: " + response.status + "\n\n" +
+            "Resposta do servidor:\n" + errorText
+        );
+
         return;
     }
 
     closeTaskForm();
-    await reloadCurrentView();
-}
-
-async function changeTaskStatus(taskId, status) {
-    const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/status?status=${status}`, {
-        method: "PATCH"
-    });
-
-    if (!response.ok) {
-        alert("Erro ao alterar status.");
-        return;
-    }
-
-    await reloadCurrentView();
+    await loadTasksForCurrentFilters();
 }
 
 async function deleteTask(taskId) {
@@ -318,24 +584,18 @@ async function deleteTask(taskId) {
         return;
     }
 
-    await reloadCurrentView();
+    await loadTasksForCurrentFilters();
 }
 
-async function reloadCurrentView() {
-    if (currentView === "today") {
-        await loadTodayTasks();
-        return;
-    }
+function getStatusBadgeClass(status) {
+    const classes = {
+        PENDING: "text-bg-danger",
+        DOING: "text-bg-primary",
+        WAITING: "text-bg-warning",
+        DONE: "text-bg-success"
+    };
 
-    if (currentView === "all") {
-        await loadAllTasks();
-        return;
-    }
-
-    if (currentView === "category" && currentCategoryId) {
-        const category = categories.find(item => item.id === currentCategoryId);
-        await loadTasksByCategory(currentCategoryId, category ? category.name : "Categoria");
-    }
+    return classes[status] || "text-bg-secondary";
 }
 
 function requiresReferenceDate(type) {

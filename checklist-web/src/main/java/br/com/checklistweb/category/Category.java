@@ -19,13 +19,48 @@ public class Category {
     @Column(nullable = false)
     private Boolean active = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ChecklistPerson person = ChecklistPerson.AMBOS;
+
     public Category() {
     }
 
-    public Category(String name, Integer displayOrder) {
+    public Category(String name, Integer displayOrder, ChecklistPerson person) {
         this.name = name;
         this.displayOrder = displayOrder;
+        this.person = person;
         this.active = true;
+    }
+
+    @PrePersist
+    public void prePersist() {
+        if (this.displayOrder == null) {
+            this.displayOrder = 0;
+        }
+
+        if (this.active == null) {
+            this.active = true;
+        }
+
+        if (this.person == null) {
+            this.person = ChecklistPerson.AMBOS;
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        if (this.displayOrder == null) {
+            this.displayOrder = 0;
+        }
+
+        if (this.active == null) {
+            this.active = true;
+        }
+
+        if (this.person == null) {
+            this.person = ChecklistPerson.AMBOS;
+        }
     }
 
     public Long getId() {
@@ -44,6 +79,10 @@ public class Category {
         return active;
     }
 
+    public ChecklistPerson getPerson() {
+        return person;
+    }
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -58,5 +97,9 @@ public class Category {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public void setPerson(ChecklistPerson person) {
+        this.person = person;
     }
 }

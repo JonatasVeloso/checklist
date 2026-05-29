@@ -1,113 +1,244 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-bs-theme="light">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Checklist Web</title>
 
+    <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+            crossorigin="anonymous">
+
     <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body class="bg-body-tertiary">
 
-<header class="app-header">
-    <div>
-        <h1>Checklist Web</h1>
-        <p>Organize suas tarefas por categoria, tipo e status.</p>
-    </div>
-</header>
+<section id="personScreen" class="min-vh-100 d-flex align-items-center justify-content-center p-3 bg-primary bg-gradient">
+    <div class="card shadow-lg border-0 rounded-4 person-card">
+        <div class="card-body p-4 text-center">
+            <h1 class="fw-bold mb-2">Checklist Web</h1>
+            <p class="text-secondary mb-4">Escolha para quem você quer ver as tarefas.</p>
 
-<main class="app-container">
+            <div class="d-grid gap-3">
+                <button class="btn btn-primary btn-lg rounded-3" onclick="selectPerson('AMBOS', 'Ambos')">
+                    Ambos
+                </button>
 
-    <section class="panel">
-        <div class="panel-header">
-            <h2>Categorias</h2>
-            <button onclick="openCategoryForm()">Nova categoria</button>
+                <button class="btn btn-primary btn-lg rounded-3" onclick="selectPerson('MORZIN', 'Morzin')">
+                    Morzin
+                </button>
+
+                <button class="btn btn-primary btn-lg rounded-3" onclick="selectPerson('MORZINHA', 'Morzinha')">
+                    Morzinha
+                </button>
+            </div>
         </div>
+    </div>
+</section>
 
-        <div id="categoryTabs" class="tabs"></div>
-    </section>
+<section id="appScreen" class="hidden">
 
-    <section class="panel">
-        <div class="panel-header">
+    <header class="bg-dark text-white py-3 shadow-sm">
+        <div class="container d-flex flex-column flex-md-row justify-content-between gap-3">
             <div>
-                <h2 id="taskTitle">Tarefas</h2>
-                <p id="taskSubtitle">Selecione uma categoria ou veja as tarefas de hoje.</p>
+                <h1 class="h3 mb-1 fw-bold">Checklist Web</h1>
+                <p id="selectedPersonLabel" class="mb-0 text-white-50">Pessoa selecionada: Ambos</p>
             </div>
 
-            <button onclick="openTaskForm()">Nova tarefa</button>
+            <div class="d-grid gap-2 header-actions">
+                <button class="btn btn-outline-light" onclick="backToPersonScreen()">
+                    Trocar pessoa
+                </button>
+
+                <button class="btn btn-primary" onclick="openCategoryForm()">
+                    Nova categoria
+                </button>
+            </div>
         </div>
+    </header>
 
-        <div class="filters">
-            <button onclick="loadTodayTasks()">Hoje</button>
-            <button onclick="loadAllTasks()">Todas</button>
-        </div>
+    <main class="container my-4">
 
-        <div id="taskList" class="task-list"></div>
-    </section>
+        <section class="card border-0 shadow-sm rounded-4 mb-3">
+            <div class="card-body">
+                <div class="row g-4">
 
-</main>
+                    <div class="col-12 col-md-3">
+                        <h2 class="h5 fw-bold mb-3">Visualização</h2>
 
-<div id="categoryModal" class="modal hidden">
-    <div class="modal-content">
-        <h2>Nova categoria</h2>
+                        <div class="d-grid gap-2">
+                            <button id="todayFilterButton" class="btn btn-primary" onclick="loadTodayTasks()">
+                                Hoje
+                            </button>
 
-        <label>Nome</label>
-        <input id="categoryName" type="text" placeholder="Ex: Doméstico" />
+                            <button id="allFilterButton" class="btn btn-outline-primary" onclick="loadAllTasks()">
+                                Todas
+                            </button>
+                        </div>
+                    </div>
 
-        <label>Ordem</label>
-        <input id="categoryOrder" type="number" value="1" />
+                    <div class="col-12 col-md-4">
+                        <h2 class="h5 fw-bold mb-3">Status</h2>
 
-        <div class="modal-actions">
-            <button class="secondary" onclick="closeCategoryForm()">Cancelar</button>
-            <button onclick="saveCategory()">Salvar</button>
+                        <div id="statusFilterButtons" class="d-flex flex-wrap gap-2">
+                            <button id="statusFilterAll" class="btn btn-primary" onclick="selectStatusFilter('ALL')">
+                                Todos
+                            </button>
+
+                            <button id="statusFilterPending" class="btn btn-outline-primary" onclick="selectStatusFilter('PENDING')">
+                                Pendente
+                            </button>
+
+                            <button id="statusFilterDoing" class="btn btn-outline-primary" onclick="selectStatusFilter('DOING')">
+                                Fazendo
+                            </button>
+
+                            <button id="statusFilterWaiting" class="btn btn-outline-primary" onclick="selectStatusFilter('WAITING')">
+                                Aguardando
+                            </button>
+
+                            <button id="statusFilterDone" class="btn btn-outline-primary" onclick="selectStatusFilter('DONE')">
+                                Concluído
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-5">
+                        <h2 class="h5 fw-bold mb-3">Categoria</h2>
+
+                        <div id="categoryTabs" class="d-flex flex-wrap gap-2"></div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <section class="card border-0 shadow-sm rounded-4">
+            <div class="card-body">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+                    <div>
+                        <h2 id="taskTitle" class="h4 fw-bold mb-1">Tarefas</h2>
+                        <p id="taskSubtitle" class="text-secondary mb-0">
+                            Selecione uma visualização e uma categoria.
+                        </p>
+                    </div>
+
+                    <div class="d-grid">
+                        <button class="btn btn-success" onclick="openTaskForm()">
+                            Nova tarefa
+                        </button>
+                    </div>
+                </div>
+
+                <div id="taskList" class="d-grid gap-3"></div>
+            </div>
+        </section>
+
+    </main>
+
+</section>
+
+<div id="categoryModal" class="modal-backdrop-custom hidden">
+    <div class="card border-0 shadow-lg rounded-4 modal-card">
+        <div class="card-body p-4">
+            <h2 class="h4 fw-bold mb-3">Nova categoria</h2>
+
+            <div class="mb-3">
+                <label for="categoryPerson" class="form-label fw-semibold">Pessoa</label>
+                <select id="categoryPerson" class="form-select">
+                    <option value="AMBOS">Ambos</option>
+                    <option value="MORZIN">Morzin</option>
+                    <option value="MORZINHA">Morzinha</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="categoryName" class="form-label fw-semibold">Nome</label>
+                <input id="categoryName" class="form-control" type="text" placeholder="Ex: Doméstico" />
+            </div>
+
+            <div class="mb-3">
+                <label for="categoryOrder" class="form-label fw-semibold">Ordem</label>
+                <input id="categoryOrder" class="form-control" type="number" value="1" />
+            </div>
+
+            <div class="d-grid d-md-flex justify-content-md-end gap-2">
+                <button class="btn btn-outline-secondary" onclick="closeCategoryForm()">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveCategory()">Salvar</button>
+            </div>
         </div>
     </div>
 </div>
 
-<div id="taskModal" class="modal hidden">
-    <div class="modal-content">
-        <h2 id="taskModalTitle">Nova tarefa</h2>
+<div id="taskModal" class="modal-backdrop-custom hidden">
+    <div class="card border-0 shadow-lg rounded-4 modal-card">
+        <div class="card-body p-4">
+            <h2 id="taskModalTitle" class="h4 fw-bold mb-3">Nova tarefa</h2>
 
-        <input id="taskId" type="hidden" />
+            <input id="taskId" type="hidden" />
 
-        <label>Categoria</label>
-        <select id="taskCategory"></select>
+            <div class="mb-3">
+                <label for="taskCategory" class="form-label fw-semibold">Categoria</label>
+                <select id="taskCategory" class="form-select"></select>
+            </div>
 
-        <label>Descrição</label>
-        <input id="taskDescription" type="text" placeholder="Ex: Lavar a louça" />
+            <div class="mb-3">
+                <label for="taskDescription" class="form-label fw-semibold">Descrição</label>
+                <input id="taskDescription" class="form-control" type="text" placeholder="Ex: Lavar a louça" />
+            </div>
 
-        <label>Observação</label>
-        <textarea id="taskObservation" placeholder="Detalhes da tarefa"></textarea>
+            <div class="mb-3">
+                <label for="taskObservation" class="form-label fw-semibold">Observação</label>
+                <textarea id="taskObservation" class="form-control" rows="3" placeholder="Detalhes da tarefa"></textarea>
+            </div>
 
-        <label>Status</label>
-        <select id="taskStatus">
-            <option value="PENDING">Pendente</option>
-            <option value="DOING">Fazendo</option>
-            <option value="WAITING">Aguardando</option>
-            <option value="DONE">Concluído</option>
-        </select>
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label for="taskStatus" class="form-label fw-semibold">Status</label>
+                    <select id="taskStatus" class="form-select">
+                        <option value="PENDING">Pendente</option>
+                        <option value="DOING">Fazendo</option>
+                        <option value="WAITING">Aguardando</option>
+                        <option value="DONE">Concluído</option>
+                    </select>
+                </div>
 
-        <label>Tipo</label>
-        <select id="taskType">
-            <option value="DIARIA">Diária</option>
-            <option value="SEMANAL">Semanal</option>
-            <option value="MENSAL">Mensal</option>
-            <option value="PROGRAMADA">Programada</option>
-        </select>
+                <div class="col-12 col-md-6">
+                    <label for="taskType" class="form-label fw-semibold">Tipo</label>
+                    <select id="taskType" class="form-select">
+                        <option value="DIARIA">Diária</option>
+                        <option value="SEMANAL">Semanal</option>
+                        <option value="MENSAL">Mensal</option>
+                        <option value="PROGRAMADA">Programada</option>
+                    </select>
+                </div>
 
-        <label>Data de referência</label>
-        <input id="taskReferenceDate" type="date" />
+                <div class="col-12 col-md-6">
+                    <label for="taskReferenceDate" class="form-label fw-semibold">Data de referência</label>
+                    <input id="taskReferenceDate" class="form-control" type="date" />
+                </div>
 
-        <label>Ordem</label>
-        <input id="taskOrder" type="number" value="1" />
+                <div class="col-12 col-md-6">
+                    <label for="taskOrder" class="form-label fw-semibold">Ordem</label>
+                    <input id="taskOrder" class="form-control" type="number" value="1" />
+                </div>
+            </div>
 
-        <div class="modal-actions">
-            <button class="secondary" onclick="closeTaskForm()">Cancelar</button>
-            <button onclick="saveTask()">Salvar</button>
+            <div class="d-grid d-md-flex justify-content-md-end gap-2 mt-4">
+                <button class="btn btn-outline-secondary" onclick="closeTaskForm()">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveTask()">Salvar</button>
+            </div>
         </div>
     </div>
 </div>
+
+<script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
 
 <script src="app.js"></script>
 </body>

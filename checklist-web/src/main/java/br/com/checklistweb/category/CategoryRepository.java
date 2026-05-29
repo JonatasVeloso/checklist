@@ -8,4 +8,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     List<Category> findByActiveTrueOrderByDisplayOrderAscNameAsc();
 
+    List<Category> findByPersonAndActiveTrueOrderByDisplayOrderAscNameAsc(ChecklistPerson person);
+
 }

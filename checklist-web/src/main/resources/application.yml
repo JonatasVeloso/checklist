@@ -4,8 +4,8 @@ spring:
 
   datasource:
     url: jdbc:postgresql:///defaultdb?sslmode=require
-    username: avnadmin
-    password:
+    username:
+    password: 
 
   jpa:
     hibernate:

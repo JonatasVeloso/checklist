@@ -1,5 +1,6 @@
 package br.com.checklistweb.task;
 
+import br.com.checklistweb.category.ChecklistPerson;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,9 +21,19 @@ public class TaskController {
         return taskService.findAll();
     }
 
+    @GetMapping("/person/{person}")
+    public List<TaskResponse> findByPerson(@PathVariable ChecklistPerson person) {
+        return taskService.findByPerson(person);
+    }
+
     @GetMapping("/today")
     public List<TaskResponse> findToday() {
         return taskService.findToday();
+    }
+
+    @GetMapping("/today/person/{person}")
+    public List<TaskResponse> findTodayByPerson(@PathVariable ChecklistPerson person) {
+        return taskService.findTodayByPerson(person);
     }
 
     @GetMapping("/category/{categoryId}")

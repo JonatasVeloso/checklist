@@ -11,6 +11,9 @@ public class CategoryRequest {
     @NotNull
     private Integer displayOrder;
 
+    @NotNull
+    private ChecklistPerson person;
+
     public CategoryRequest() {
     }
 
@@ -22,11 +25,19 @@ public class CategoryRequest {
         return displayOrder;
     }
 
+    public ChecklistPerson getPerson() {
+        return person;
+    }
+
     public void setName(String name) {
         this.name = name;
     }
 
     public void setDisplayOrder(Integer displayOrder) {
         this.displayOrder = displayOrder;
+    }
+
+    public void setPerson(ChecklistPerson person) {
+        this.person = person;
     }
 }

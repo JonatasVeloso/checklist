@@ -2,6 +2,7 @@ package br.com.checklistweb.task;
 
 import br.com.checklistweb.category.Category;
 import br.com.checklistweb.category.CategoryService;
+import br.com.checklistweb.category.ChecklistPerson;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,13 @@ public class TaskService {
                 .toList();
     }
 
+    public List<TaskResponse> findByPerson(ChecklistPerson person) {
+        return taskRepository.findByCategoryPersonOrderByCategoryDisplayOrderAscDisplayOrderAscIdAsc(person)
+                .stream()
+                .map(TaskResponse::new)
+                .toList();
+    }
+
     public List<TaskResponse> findByCategory(Long categoryId) {
         return taskRepository.findByCategoryIdOrderByDisplayOrderAscIdAsc(categoryId)
                 .stream()
@@ -38,6 +46,20 @@ public class TaskService {
         LocalDate today = LocalDate.now();
 
         return taskRepository.findAllByOrderByCategoryDisplayOrderAscDisplayOrderAscIdAsc()
+                .stream()
+                .filter(task -> shouldAppearToday(task, today))
+                .sorted(Comparator
+                        .comparing((Task task) -> task.getCategory().getDisplayOrder())
+                        .thenComparing(Task::getDisplayOrder)
+                        .thenComparing(Task::getId))
+                .map(TaskResponse::new)
+                .toList();
+    }
+
+    public List<TaskResponse> findTodayByPerson(ChecklistPerson person) {
+        LocalDate today = LocalDate.now();
+
+        return taskRepository.findByCategoryPersonOrderByCategoryDisplayOrderAscDisplayOrderAscIdAsc(person)
                 .stream()
                 .filter(task -> shouldAppearToday(task, today))
                 .sorted(Comparator
@@ -106,10 +128,6 @@ public class TaskService {
     }
 
     private boolean shouldAppearToday(Task task, LocalDate today) {
-        if (task.isDone()) {
-            return false;
-        }
-
         if (task.getType() == null) {
             return false;
         }
