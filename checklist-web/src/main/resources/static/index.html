@@ -64,52 +64,32 @@
 
         <section class="card border-0 shadow-sm rounded-4 mb-3">
             <div class="card-body">
-                <div class="row g-4">
+                <div class="row g-3">
 
-                    <div class="col-12 col-md-3">
-                        <h2 class="h5 fw-bold mb-3">Visualização</h2>
-
-                        <div class="d-grid gap-2">
-                            <button id="todayFilterButton" class="btn btn-primary" onclick="loadTodayTasks()">
-                                Hoje
-                            </button>
-
-                            <button id="allFilterButton" class="btn btn-outline-primary" onclick="loadAllTasks()">
-                                Todas
-                            </button>
-                        </div>
+                    <div class="col-12 col-md-4">
+                        <label for="viewFilterSelect" class="form-label fw-bold">Visualização</label>
+                        <select id="viewFilterSelect" class="form-select" onchange="selectViewFilter(this.value)">
+                            <option value="today">Hoje</option>
+                            <option value="all">Todas</option>
+                        </select>
                     </div>
 
                     <div class="col-12 col-md-4">
-                        <h2 class="h5 fw-bold mb-3">Status</h2>
-
-                        <div id="statusFilterButtons" class="d-flex flex-wrap gap-2">
-                            <button id="statusFilterAll" class="btn btn-primary" onclick="selectStatusFilter('ALL')">
-                                Todos
-                            </button>
-
-                            <button id="statusFilterPending" class="btn btn-outline-primary" onclick="selectStatusFilter('PENDING')">
-                                Pendente
-                            </button>
-
-                            <button id="statusFilterDoing" class="btn btn-outline-primary" onclick="selectStatusFilter('DOING')">
-                                Fazendo
-                            </button>
-
-                            <button id="statusFilterWaiting" class="btn btn-outline-primary" onclick="selectStatusFilter('WAITING')">
-                                Aguardando
-                            </button>
-
-                            <button id="statusFilterDone" class="btn btn-outline-primary" onclick="selectStatusFilter('DONE')">
-                                Concluído
-                            </button>
-                        </div>
+                        <label for="statusFilterSelect" class="form-label fw-bold">Status</label>
+                        <select id="statusFilterSelect" class="form-select" onchange="selectStatusFilter(this.value)">
+                            <option value="ALL">Todos</option>
+                            <option value="PENDING">Pendente</option>
+                            <option value="DOING">Fazendo</option>
+                            <option value="WAITING">Aguardando</option>
+                            <option value="DONE">Concluído</option>
+                        </select>
                     </div>
 
-                    <div class="col-12 col-md-5">
-                        <h2 class="h5 fw-bold mb-3">Categoria</h2>
-
-                        <div id="categoryTabs" class="d-flex flex-wrap gap-2"></div>
+                    <div class="col-12 col-md-4">
+                        <label for="categoryFilterSelect" class="form-label fw-bold">Categoria</label>
+                        <select id="categoryFilterSelect" class="form-select" onchange="selectCategoryFilterFromSelect(this.value)">
+                            <option value="ALL">Todas categorias</option>
+                        </select>
                     </div>
 
                 </div>

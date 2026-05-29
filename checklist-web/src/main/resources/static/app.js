@@ -31,6 +31,11 @@ async function selectPerson(person, label) {
     selectedTaskActionId = null;
 
     await loadCategories();
+
+    updateViewFilterSelect();
+    updateStatusFilterSelect();
+    renderCategoryFilters();
+
     await loadTasksForCurrentFilters();
 }
 
@@ -43,7 +48,12 @@ function backToPersonScreen() {
     selectedTaskActionId = null;
     categories = [];
 
-    document.getElementById("categoryTabs").innerHTML = "";
+    const categorySelect = document.getElementById("categoryFilterSelect");
+
+    if (categorySelect) {
+        categorySelect.innerHTML = `<option value="ALL">Todas categorias</option>`;
+    }
+
     document.getElementById("taskList").innerHTML = "";
 
     showPersonScreen();
@@ -53,8 +63,18 @@ async function selectStatusFilter(status) {
     currentStatusFilter = status;
     selectedTaskActionId = null;
 
-    updateStatusFilterButtons();
+    updateStatusFilterSelect();
     await loadTasksForCurrentFilters();
+}
+
+function updateStatusFilterSelect() {
+    const select = document.getElementById("statusFilterSelect");
+
+    if (!select) {
+        return;
+    }
+
+    select.value = currentStatusFilter;
 }
 
 function updateStatusFilterButtons() {
@@ -96,30 +116,36 @@ async function loadCategories() {
 }
 
 function renderCategoryFilters() {
-    const container = document.getElementById("categoryTabs");
-    container.innerHTML = "";
+    const select = document.getElementById("categoryFilterSelect");
 
-    const allButton = document.createElement("button");
-    allButton.className = currentCategoryId === null
-        ? "btn btn-primary"
-        : "btn btn-outline-primary";
+    if (!select) {
+        return;
+    }
 
-    allButton.textContent = "Todas categorias";
-    allButton.onclick = () => selectCategoryFilter(null);
+    select.innerHTML = "";
 
-    container.appendChild(allButton);
+    const allOption = document.createElement("option");
+    allOption.value = "ALL";
+    allOption.textContent = "Todas categorias";
+    select.appendChild(allOption);
 
     categories.forEach(category => {
-        const button = document.createElement("button");
-        button.className = category.id === currentCategoryId
-            ? "btn btn-primary"
-            : "btn btn-outline-primary";
+        const option = document.createElement("option");
+        option.value = String(category.id);
+        option.textContent = category.name;
 
-        button.textContent = category.name;
-        button.onclick = () => selectCategoryFilter(category.id);
-
-        container.appendChild(button);
+        select.appendChild(option);
     });
+
+    select.value = currentCategoryId === null ? "ALL" : String(currentCategoryId);
+}
+
+async function selectViewFilter(view) {
+    currentView = view;
+    selectedTaskActionId = null;
+
+    updateViewFilterSelect();
+    await loadTasksForCurrentFilters();
 }
 
 function renderCategoryOptions() {
@@ -143,11 +169,24 @@ async function selectCategoryFilter(categoryId) {
     await loadTasksForCurrentFilters();
 }
 
+async function selectCategoryFilterFromSelect(value) {
+    selectedTaskActionId = null;
+
+    if (value === "ALL") {
+        currentCategoryId = null;
+    } else {
+        currentCategoryId = Number(value);
+    }
+
+    renderCategoryFilters();
+    await loadTasksForCurrentFilters();
+}
+
 async function loadTodayTasks() {
     currentView = "today";
     selectedTaskActionId = null;
 
-    updateViewFilterButtons();
+    updateViewFilterSelect();
     await loadTasksForCurrentFilters();
 }
 
@@ -155,8 +194,18 @@ async function loadAllTasks() {
     currentView = "all";
     selectedTaskActionId = null;
 
-    updateViewFilterButtons();
+    updateViewFilterSelect();
     await loadTasksForCurrentFilters();
+}
+
+function updateViewFilterSelect() {
+    const select = document.getElementById("viewFilterSelect");
+
+    if (!select) {
+        return;
+    }
+
+    select.value = currentView;
 }
 
 function updateViewFilterButtons() {
@@ -178,8 +227,8 @@ async function loadTasksForCurrentFilters() {
         return;
     }
 
-    updateViewFilterButtons();
-    updateStatusFilterButtons();
+    updateViewFilterSelect();
+    updateStatusFilterSelect();
     renderCategoryFilters();
 
     const url = currentView === "today"
@@ -389,6 +438,8 @@ async function markTaskAsDone(taskId) {
     if (currentStatusFilter !== "ALL" && currentStatusFilter !== "DONE") {
         currentStatusFilter = "ALL";
     }
+
+    updateStatusFilterSelect();
 
     await loadTasksForCurrentFilters();
 }
